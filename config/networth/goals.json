@@ -1,0 +1,13 @@
+{
+  "goals": [
+    {
+      "id": "goal-1773441252110",
+      "name": "Fundrise 50k",
+      "targetValue": 5000000,
+      "targetDate": "2026-12-30",
+      "targetType": "category",
+      "categoryId": "asset-1773440349604-0gdbw",
+      "createdAt": "2026-03-13T22:34:12.110Z"
+    }
+  ]
+}

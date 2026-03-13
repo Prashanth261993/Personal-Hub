@@ -1,0 +1,25 @@
+
+# Copilot Orchestrator temporary files
+.orchestrator/
+.worktrees/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# SQLite database
+data/*.db
+data/*.db-journal
+data/*.db-wal
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+.copilot-cli/
+.github/instructions/orchestrator-*.instructions.md
