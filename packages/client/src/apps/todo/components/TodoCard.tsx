@@ -7,7 +7,7 @@ import { format, parseISO } from 'date-fns';
 import PriorityBadge from './PriorityBadge';
 import StatusBadge from './StatusBadge';
 import TodoDetail from './TodoDetail';
-import type { TodoSummary, TodoGroup, TodoPriority } from '@networth/shared';
+import type { TodoSummary, TodoGroup } from '@networth/shared';
 
 interface TodoCardProps {
   todo: TodoSummary;
@@ -56,7 +56,7 @@ export default function TodoCard({ todo, groups, onComplete, onReopen, onUpdate,
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: isDragging ? 0.5 : 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, y: -10 }}
-      className={`bg-white rounded-xl border transition-all ${
+      className={`relative bg-white rounded-xl border transition-all ${
         isDragging ? 'shadow-xl border-primary-300 z-50' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
       } ${isCompleted ? 'opacity-60' : ''}`}
     >
@@ -78,10 +78,14 @@ export default function TodoCard({ todo, groups, onComplete, onReopen, onUpdate,
         {/* Checkbox */}
         <button
           onClick={handleCheck}
-          className={`mt-0.5 w-4.5 h-4.5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
+          className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
             isCompleted
               ? 'bg-green-500 border-green-500 text-white'
-              : `border-gray-300 hover:border-${priorityBorderColor(todo.priority)}`
+              : todo.priority === 'high'
+                ? 'border-red-300 hover:border-red-500 hover:bg-red-50'
+                : todo.priority === 'medium'
+                  ? 'border-amber-300 hover:border-amber-500 hover:bg-amber-50'
+                  : 'border-green-300 hover:border-green-500 hover:bg-green-50'
           }`}
         >
           {isCompleted && (
@@ -99,7 +103,10 @@ export default function TodoCard({ todo, groups, onComplete, onReopen, onUpdate,
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div
+            className="flex items-center gap-2 flex-wrap px-2 py-1 -mx-2 -mt-0.5 rounded-lg"
+            style={group ? { backgroundColor: group.color + '08' } : undefined}
+          >
             <span className={`text-sm font-medium ${isCompleted ? 'line-through text-gray-400' : 'text-gray-900'}`}>
               {todo.title}
             </span>
@@ -155,12 +162,4 @@ export default function TodoCard({ todo, groups, onComplete, onReopen, onUpdate,
       </AnimatePresence>
     </motion.div>
   );
-}
-
-function priorityBorderColor(priority: TodoPriority): string {
-  switch (priority) {
-    case 'high': return 'red-400';
-    case 'medium': return 'amber-400';
-    case 'low': return 'green-400';
-  }
 }

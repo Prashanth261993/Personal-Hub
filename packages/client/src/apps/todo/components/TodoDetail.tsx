@@ -82,11 +82,11 @@ export default function TodoDetail({ todoId, groups, onUpdate, onDelete, onClose
 
   if (!todoDetail) return null;
 
-  const priorityColors: Record<TodoPriority, string> = {
-    high: 'text-red-500 bg-red-50 border-red-200',
-    medium: 'text-amber-500 bg-amber-50 border-amber-200',
-    low: 'text-green-500 bg-green-50 border-green-200',
-  };
+  const priorityConfig: { value: TodoPriority; label: string; color: string; activeColor: string }[] = [
+    { value: 'high', label: 'High', color: 'text-red-400', activeColor: 'text-red-500 bg-red-50 border-red-200 ring-1 ring-red-100' },
+    { value: 'medium', label: 'Medium', color: 'text-amber-400', activeColor: 'text-amber-500 bg-amber-50 border-amber-200 ring-1 ring-amber-100' },
+    { value: 'low', label: 'Low', color: 'text-green-400', activeColor: 'text-green-500 bg-green-50 border-green-200 ring-1 ring-green-100' },
+  ];
 
   return (
     <motion.div
@@ -166,18 +166,18 @@ export default function TodoDetail({ todoId, groups, onUpdate, onDelete, onClose
         {/* Controls row */}
         <div className="flex items-center gap-3 flex-wrap pt-2 border-t border-gray-100">
           {/* Priority */}
-          <div className="flex items-center gap-1">
-            {(['high', 'medium', 'low'] as TodoPriority[]).map(p => (
+          <div className="flex items-center gap-0.5">
+            {priorityConfig.map(p => (
               <button
-                key={p}
+                key={p.value}
                 type="button"
-                onClick={() => handleFieldUpdate('priority', p)}
-                className={`p-1 rounded-md border transition-all ${
-                  todoDetail.priority === p ? priorityColors[p] : 'text-gray-300 border-transparent hover:text-gray-400'
+                onClick={() => handleFieldUpdate('priority', p.value)}
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-medium transition-all ${
+                  todoDetail.priority === p.value ? p.activeColor : `${p.color} border-transparent hover:bg-gray-100`
                 }`}
-                title={p}
               >
-                <Flag className="w-3.5 h-3.5" />
+                <Flag className="w-3 h-3" />
+                {p.label}
               </button>
             ))}
           </div>

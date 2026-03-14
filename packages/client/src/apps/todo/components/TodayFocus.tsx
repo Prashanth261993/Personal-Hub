@@ -11,7 +11,9 @@ interface TodayFocusProps {
 }
 
 export default function TodayFocus({ todos, onComplete }: TodayFocusProps) {
-  const today = new Date().toISOString().split('T')[0];
+  // Use local date (not UTC) so timezone doesn't shift the "today" boundary
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const todayTodos = todos
     .filter(t => t.dueDate === today && t.status === 'open' && !t.parentId)
     .sort((a, b) => {

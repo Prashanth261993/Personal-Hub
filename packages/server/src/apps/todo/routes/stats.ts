@@ -14,6 +14,10 @@ function parseRecurrence(json: string | null): RecurrenceRule | null {
 // GET /api/todo/stats — aggregate stats
 router.get('/', (_req: Request, res: Response) => {
   try {
+    // Use local date consistently to match client-side "today"
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
     const openCount = db
       .select({ count: sql<number>`COUNT(*)` })
       .from(todos)
@@ -26,15 +30,14 @@ router.get('/', (_req: Request, res: Response) => {
       .where(and(eq(todos.status, 'completed'), sql`parent_id IS NULL`))
       .get()!.count;
 
-    const today = new Date().toISOString().split('T')[0];
-
-    // Completed today (non-recurring + recurring completions)
+    // Completed today: non-recurring (currently completed with completedAt today)
+    // plus recurring completions logged today
     const completedTodayNonRecurring = db
       .select({ count: sql<number>`COUNT(*)` })
       .from(todos)
       .where(and(
         eq(todos.status, 'completed'),
-        sql`date(completed_at) = ${today}`,
+        sql`date(completed_at, 'localtime') = ${today}`,
         sql`parent_id IS NULL`
       ))
       .get()!.count;
@@ -48,19 +51,18 @@ router.get('/', (_req: Request, res: Response) => {
     const completedToday = completedTodayNonRecurring + completedTodayRecurring;
 
     // Completed this week (Mon-Sun)
-    const now = new Date();
     const dayOfWeek = now.getDay();
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     const monday = new Date(now);
     monday.setDate(now.getDate() + mondayOffset);
-    const weekStart = monday.toISOString().split('T')[0];
+    const weekStart = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
 
     const completedThisWeekNR = db
       .select({ count: sql<number>`COUNT(*)` })
       .from(todos)
       .where(and(
         eq(todos.status, 'completed'),
-        sql`date(completed_at) >= ${weekStart}`,
+        sql`date(completed_at, 'localtime') >= ${weekStart}`,
         sql`parent_id IS NULL`
       ))
       .get()!.count;
@@ -76,20 +78,20 @@ router.get('/', (_req: Request, res: Response) => {
     // Daily completions for last 30 days
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+    const thirtyDaysAgoStr = `${thirtyDaysAgo.getFullYear()}-${String(thirtyDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(thirtyDaysAgo.getDate()).padStart(2, '0')}`;
 
     const dailyNR = db
       .select({
-        date: sql<string>`date(completed_at)`,
+        date: sql<string>`date(completed_at, 'localtime')`,
         count: sql<number>`COUNT(*)`,
       })
       .from(todos)
       .where(and(
         eq(todos.status, 'completed'),
-        sql`date(completed_at) >= ${thirtyDaysAgoStr}`,
+        sql`date(completed_at, 'localtime') >= ${thirtyDaysAgoStr}`,
         sql`parent_id IS NULL`
       ))
-      .groupBy(sql`date(completed_at)`)
+      .groupBy(sql`date(completed_at, 'localtime')`)
       .all();
 
     const dailyRC = db
@@ -120,7 +122,7 @@ router.get('/', (_req: Request, res: Response) => {
     const checkDate = new Date();
     let tempStreak = 0;
     for (let i = 0; i < 365; i++) {
-      const dateStr = checkDate.toISOString().split('T')[0];
+      const dateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
       if (allDates.has(dateStr)) {
         tempStreak++;
         longestStreak = Math.max(longestStreak, tempStreak);
@@ -143,10 +145,13 @@ router.get('/', (_req: Request, res: Response) => {
     let streak = 0;
     const streakDate = new Date();
     // If today has no completions, start from yesterday
-    if (!allDates.has(streakDate.toISOString().split('T')[0])) {
+    const streakTodayStr = `${streakDate.getFullYear()}-${String(streakDate.getMonth() + 1).padStart(2, '0')}-${String(streakDate.getDate()).padStart(2, '0')}`;
+    if (!allDates.has(streakTodayStr)) {
       streakDate.setDate(streakDate.getDate() - 1);
     }
-    while (allDates.has(streakDate.toISOString().split('T')[0])) {
+    while (true) {
+      const ds = `${streakDate.getFullYear()}-${String(streakDate.getMonth() + 1).padStart(2, '0')}-${String(streakDate.getDate()).padStart(2, '0')}`;
+      if (!allDates.has(ds)) break;
       streak++;
       streakDate.setDate(streakDate.getDate() - 1);
     }

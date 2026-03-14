@@ -16,7 +16,7 @@ import type {
 const router = Router();
 
 function paramId(req: Request): string {
-  return paramId(req) as string;
+  return req.params.id as string;
 }
 
 function parseRecurrence(json: string | null): RecurrenceRule | null {

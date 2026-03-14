@@ -15,13 +15,14 @@ import {
   createTodo,
   createGroup,
   updateGroup,
+  deleteGroup as deleteGroupApi,
   completeTodo,
   reopenTodo,
   updateTodo,
   deleteTodo,
   moveTodo,
 } from '../api';
-import type { TodoGroup, TodoPriority, CreateGroupRequest, UpdateGroupRequest } from '@networth/shared';
+import type { TodoGroup, TodoPriority, CreateGroupRequest, UpdateGroupRequest, RecurrenceRule } from '@networth/shared';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -79,12 +80,18 @@ export default function Dashboard() {
     onSuccess: invalidateAll,
   });
 
-  const handleQuickAdd = (data: { title: string; groupId: string; priority: TodoPriority; dueDate?: string }) => {
+  const deleteGroupMutation = useMutation({
+    mutationFn: (id: string) => deleteGroupApi(id),
+    onSuccess: invalidateAll,
+  });
+
+  const handleQuickAdd = (data: { title: string; groupId: string; priority: TodoPriority; dueDate?: string; recurrence?: RecurrenceRule }) => {
     createTodoMutation.mutate({
       groupId: data.groupId,
       title: data.title,
       priority: data.priority,
       dueDate: data.dueDate,
+      recurrence: data.recurrence,
     });
   };
 
@@ -167,6 +174,7 @@ export default function Dashboard() {
         open={groupModalOpen}
         onClose={() => setGroupModalOpen(false)}
         onSave={handleSaveGroup}
+        onDelete={id => deleteGroupMutation.mutate(id)}
       />
     </div>
   );

@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, CalendarDays, Flag, ChevronDown } from 'lucide-react';
-import type { TodoGroup, TodoPriority } from '@networth/shared';
+import { Plus, CalendarDays, Flag, ChevronDown, ChevronUp, Repeat } from 'lucide-react';
+import RecurrenceEditor from './RecurrenceEditor';
+import type { TodoGroup, TodoPriority, RecurrenceRule } from '@networth/shared';
 
 interface QuickAddProps {
   groups: TodoGroup[];
   defaultGroupId?: string;
   defaultDate?: string;
-  onAdd: (data: { title: string; groupId: string; priority: TodoPriority; dueDate?: string }) => void;
+  onAdd: (data: { title: string; groupId: string; priority: TodoPriority; dueDate?: string; recurrence?: RecurrenceRule }) => void;
 }
 
 export default function QuickAdd({ groups, defaultGroupId, defaultDate, onAdd }: QuickAddProps) {
@@ -15,25 +16,27 @@ export default function QuickAdd({ groups, defaultGroupId, defaultDate, onAdd }:
   const [groupId, setGroupId] = useState(defaultGroupId || groups[0]?.id || '');
   const [priority, setPriority] = useState<TodoPriority>('medium');
   const [dueDate, setDueDate] = useState(defaultDate || '');
+  const [recurrence, setRecurrence] = useState<RecurrenceRule | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !groupId) return;
-    onAdd({ title: title.trim(), groupId, priority, dueDate: dueDate || undefined });
+    onAdd({ title: title.trim(), groupId, priority, dueDate: dueDate || undefined, recurrence: recurrence || undefined });
     setTitle('');
     setDueDate(defaultDate || '');
     setPriority('medium');
+    setRecurrence(null);
     setExpanded(false);
+    setShowAdvanced(false);
   };
 
-  const priorityColors: Record<TodoPriority, string> = {
-    high: 'text-red-500 bg-red-50 border-red-200',
-    medium: 'text-amber-500 bg-amber-50 border-amber-200',
-    low: 'text-green-500 bg-green-50 border-green-200',
-  };
-
-  const priorities: TodoPriority[] = ['high', 'medium', 'low'];
+  const priorityConfig: { value: TodoPriority; label: string; color: string; activeColor: string }[] = [
+    { value: 'high', label: 'High', color: 'text-red-400', activeColor: 'text-red-500 bg-red-50 border-red-200 ring-1 ring-red-100' },
+    { value: 'medium', label: 'Medium', color: 'text-amber-400', activeColor: 'text-amber-500 bg-amber-50 border-amber-200 ring-1 ring-amber-100' },
+    { value: 'low', label: 'Low', color: 'text-green-400', activeColor: 'text-green-500 bg-green-50 border-green-200 ring-1 ring-green-100' },
+  ];
 
   return (
     <motion.form
@@ -86,18 +89,18 @@ export default function QuickAdd({ groups, defaultGroupId, defaultDate, onAdd }:
               </div>
 
               {/* Priority toggle */}
-              <div className="flex items-center gap-1">
-                {priorities.map(p => (
+              <div className="flex items-center gap-0.5">
+                {priorityConfig.map(p => (
                   <button
-                    key={p}
+                    key={p.value}
                     type="button"
-                    onClick={() => setPriority(p)}
-                    className={`p-1 rounded-md border transition-all ${
-                      priority === p ? priorityColors[p] : 'text-gray-300 border-transparent hover:text-gray-400'
+                    onClick={() => setPriority(p.value)}
+                    className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-medium transition-all ${
+                      priority === p.value ? p.activeColor : `${p.color} border-transparent hover:bg-gray-100`
                     }`}
-                    title={p}
                   >
-                    <Flag className="w-3.5 h-3.5" />
+                    <Flag className="w-3 h-3" />
+                    {p.label}
                   </button>
                 ))}
               </div>
@@ -112,7 +115,36 @@ export default function QuickAdd({ groups, defaultGroupId, defaultDate, onAdd }:
                   className="text-xs text-gray-600 bg-transparent outline-none cursor-pointer"
                 />
               </div>
+
+              {/* Advanced toggle */}
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-all ${
+                  showAdvanced || recurrence ? 'text-primary-600 bg-primary-50' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                {showAdvanced ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                {recurrence ? 'Recurring' : 'More'}
+              </button>
             </div>
+
+            {/* Advanced options row */}
+            <AnimatePresence>
+              {showAdvanced && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex items-center gap-3 px-4 py-2 bg-gray-50/80">
+                    <RecurrenceEditor value={recurrence} onChange={setRecurrence} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>

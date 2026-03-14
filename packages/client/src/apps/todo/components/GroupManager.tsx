@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import IconSuggest, { suggestIcons, getIcon } from './IconSuggest';
+import ConfirmModal from '../../../components/ConfirmModal';
 import type { TodoGroup, CreateGroupRequest, UpdateGroupRequest } from '@networth/shared';
 
 const PRESET_COLORS = [
@@ -15,12 +16,14 @@ interface GroupManagerProps {
   open: boolean;
   onClose: () => void;
   onSave: (data: CreateGroupRequest | UpdateGroupRequest) => void;
+  onDelete?: (id: string) => void;
 }
 
-export default function GroupManager({ group, open, onClose, onSave }: GroupManagerProps) {
+export default function GroupManager({ group, open, onClose, onSave, onDelete }: GroupManagerProps) {
   const [name, setName] = useState('');
   const [color, setColor] = useState('#6366f1');
   const [icon, setIcon] = useState('list-todo');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (group) {
@@ -131,7 +134,18 @@ export default function GroupManager({ group, open, onClose, onSave }: GroupMana
               </div>
 
               {/* Actions */}
-              <div className="flex justify-end gap-2 pt-2">
+              <div className="flex items-center gap-2 pt-2">
+                {group && onDelete && (
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete group"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+                <div className="flex-1" />
                 <button
                   type="button"
                   onClick={onClose}
@@ -151,6 +165,21 @@ export default function GroupManager({ group, open, onClose, onSave }: GroupMana
           </motion.div>
         </motion.div>
       )}
+
+      <ConfirmModal
+        open={showDeleteConfirm}
+        title="Delete Group"
+        message={`Are you sure you want to delete "${group?.name}"? All todos in this group will also be deleted. This cannot be undone.`}
+        confirmLabel="Delete"
+        onConfirm={() => {
+          if (group && onDelete) {
+            onDelete(group.id);
+            setShowDeleteConfirm(false);
+            onClose();
+          }
+        }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </AnimatePresence>
   );
 }

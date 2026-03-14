@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
+  closestCenter,
+  pointerWithin,
+  rectIntersection,
+  getFirstCollision,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -10,8 +13,10 @@ import {
   type DragStartEvent,
   type DragEndEvent,
   type DragOverEvent,
+  type CollisionDetection,
+  type UniqueIdentifier,
 } from '@dnd-kit/core';
-import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import KanbanColumn from './KanbanColumn';
@@ -44,6 +49,7 @@ export default function KanbanBoard({
   onEditGroup,
 }: KanbanBoardProps) {
   const [activeTodo, setActiveTodo] = useState<TodoSummary | null>(null);
+  const lastOverId = useRef<UniqueIdentifier | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -67,20 +73,78 @@ export default function KanbanBoard({
     list.sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
-  const findTodoContainer = (todoId: string): string | undefined => {
+  const groupIds = groups.map(g => g.id);
+  const allItemIds = todos.filter(t => !t.parentId).map(t => t.id);
+
+  const findContainer = (id: UniqueIdentifier): string | undefined => {
+    // Check if the id is a group id (droppable column)
+    if (groupIds.includes(id as string)) return id as string;
+    // Otherwise it's a todo id — find which group it belongs to
     for (const [groupId, groupTodos] of todosByGroup) {
-      if (groupTodos.some(t => t.id === todoId)) return groupId;
+      if (groupTodos.some(t => t.id === id)) return groupId;
     }
     return undefined;
   };
+
+  /**
+   * Custom collision detection:
+   * First try pointerWithin (precise), then fall back to rectIntersection.
+   * Always prefer droppable columns over sortable items when the pointer is
+   * clearly inside a column.
+   */
+  const collisionDetection: CollisionDetection = useCallback(
+    (args) => {
+      // If dragging over a column header, prefer that
+      const pointerCollisions = pointerWithin(args);
+      const collisions = pointerCollisions.length > 0 ? pointerCollisions : rectIntersection(args);
+
+      let overId = getFirstCollision(collisions, 'id');
+
+      if (overId != null) {
+        // If the collision is with a group (column), find the closest item within
+        if (groupIds.includes(overId as string)) {
+          const containerItems = (todosByGroup.get(overId as string) || [])
+            .filter(t => t.status === 'open');
+          if (containerItems.length > 0) {
+            // Use closestCenter among items in the container
+            const closestInContainer = closestCenter({
+              ...args,
+              droppableContainers: args.droppableContainers.filter(
+                (c) => c.id !== overId && containerItems.some(t => t.id === c.id)
+              ),
+            });
+            if (closestInContainer.length > 0) {
+              overId = closestInContainer[0].id;
+            }
+          }
+        }
+        lastOverId.current = overId;
+      }
+
+      return lastOverId.current ? [{ id: lastOverId.current }] : [];
+    },
+    [groupIds, todosByGroup]
+  );
 
   const handleDragStart = (event: DragStartEvent) => {
     const todo = todos.find(t => t.id === event.active.id);
     if (todo) setActiveTodo(todo);
   };
 
-  const handleDragOver = (_event: DragOverEvent) => {
-    // Visual feedback handled by droppable isOver
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    const activeContainer = findContainer(activeId);
+    const overContainer = findContainer(overId);
+
+    if (!activeContainer || !overContainer || activeContainer === overContainer) return;
+
+    // Moving between columns — do an optimistic move via the API
+    // (the actual reorder happens in onDragEnd)
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -92,28 +156,21 @@ export default function KanbanBoard({
     const activeId = active.id as string;
     const overId = over.id as string;
 
+    const activeContainer = findContainer(activeId);
+    const overContainer = findContainer(overId);
+
+    if (!activeContainer || !overContainer) return;
+
     // Determine target group
-    let targetGroupId: string;
-    const overGroup = groups.find(g => g.id === overId);
-    if (overGroup) {
-      targetGroupId = overGroup.id;
-    } else {
-      // Over a todo — find its group
-      targetGroupId = findTodoContainer(overId) || '';
-    }
-
-    if (!targetGroupId) return;
-
-    const sourceGroupId = findTodoContainer(activeId);
-    if (!sourceGroupId) return;
+    let targetGroupId = overContainer;
 
     // Calculate new sortOrder
-    const targetTodos = todosByGroup.get(targetGroupId) || [];
+    const targetTodos = (todosByGroup.get(targetGroupId) || []).filter(t => t.status === 'open');
     const overIndex = targetTodos.findIndex(t => t.id === overId);
     let newSortOrder: number;
 
-    if (overGroup) {
-      // Dropped on column (empty space) — put at the end
+    if (groupIds.includes(overId)) {
+      // Dropped on column itself — put at the end
       newSortOrder = targetTodos.length;
     } else if (overIndex >= 0) {
       newSortOrder = overIndex;
@@ -121,7 +178,8 @@ export default function KanbanBoard({
       newSortOrder = targetTodos.length;
     }
 
-    if (sourceGroupId === targetGroupId) {
+    // Skip if same position
+    if (activeContainer === targetGroupId) {
       const activeIndex = targetTodos.findIndex(t => t.id === activeId);
       if (activeIndex === newSortOrder) return;
     }
@@ -132,7 +190,7 @@ export default function KanbanBoard({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}

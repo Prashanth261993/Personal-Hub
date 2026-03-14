@@ -27,7 +27,7 @@ export default function RecurrenceEditor({ value, onChange }: RecurrenceEditorPr
     if (enabled) {
       onChange(null);
     } else {
-      onChange({ frequency: 'weekly', interval: 1, weekdays: [1, 3, 5] }); // M/W/F default
+      onChange({ frequency: 'weekly', interval: 1, weekdays: [] });
       setOpen(true);
     }
   };
@@ -120,33 +120,60 @@ export default function RecurrenceEditor({ value, onChange }: RecurrenceEditorPr
 
             {/* Weekdays (only for weekly) */}
             {rule.frequency === 'weekly' && (
-              <div className="flex gap-1">
-                {WEEKDAYS.map((day, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => toggleWeekday(i)}
-                    className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${
-                      (rule.weekdays || []).includes(i)
-                        ? 'bg-primary-100 text-primary-700'
-                        : 'text-gray-400 hover:bg-gray-100'
-                    }`}
-                  >
-                    {day.charAt(0)}
-                  </button>
-                ))}
+              <div>
+                <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1.5">Repeat on</p>
+                <div className="flex gap-1">
+                  {WEEKDAYS.map((day, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => toggleWeekday(i)}
+                      className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${
+                        (rule.weekdays || []).includes(i)
+                          ? 'bg-primary-600 text-white shadow-sm'
+                          : 'bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                      }`}
+                    >
+                      {day.slice(0, 2)}
+                    </button>
+                  ))}
+                </div>
+                {(rule.weekdays || []).length === 0 && (
+                  <p className="text-[10px] text-amber-500 mt-1">Select at least one day</p>
+                )}
               </div>
             )}
 
             {/* End date */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Ends</span>
-              <input
-                type="date"
-                value={rule.endDate || ''}
-                onChange={e => updateRule({ endDate: e.target.value || undefined })}
-                className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-primary-300"
-              />
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-1.5">Ends</p>
+              <div className="flex items-center gap-2">
+                <select
+                  value={rule.endDate ? 'date' : 'never'}
+                  onChange={e => {
+                    if (e.target.value === 'never') {
+                      updateRule({ endDate: undefined });
+                    } else {
+                      // Default to 3 months from now
+                      const d = new Date();
+                      d.setMonth(d.getMonth() + 3);
+                      updateRule({ endDate: d.toISOString().split('T')[0] });
+                    }
+                  }}
+                  className="text-xs bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700 outline-none focus:border-primary-300"
+                >
+                  <option value="never">Never</option>
+                  <option value="date">On date</option>
+                </select>
+                {rule.endDate && (
+                  <input
+                    type="date"
+                    value={rule.endDate}
+                    onChange={e => updateRule({ endDate: e.target.value || undefined })}
+                    className="text-xs text-gray-600 border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-primary-300"
+                  />
+                )}
+              </div>
             </div>
           </motion.div>
         )}
