@@ -308,9 +308,10 @@ function expandRecurrence(rule: RecurrenceRule, rangeStart: string, rangeEnd: st
   const end = new Date(rangeEnd + 'T23:59:59');
   const rStart = new Date(rangeStart + 'T00:00:00');
   const endDate = rule.endDate ? new Date(rule.endDate + 'T23:59:59') : null;
+  const exceptionSet = new Set(rule.exceptions || []);
 
   const current = new Date(start);
-  const maxIterations = 1000; // safety limit
+  const maxIterations = 1000;
   let iterations = 0;
 
   while (current <= end && iterations < maxIterations) {
@@ -320,7 +321,7 @@ function expandRecurrence(rule: RecurrenceRule, rangeStart: string, rangeEnd: st
 
     const dateStr = current.toISOString().split('T')[0];
 
-    if (current >= rStart) {
+    if (current >= rStart && !exceptionSet.has(dateStr)) {
       if (rule.frequency === 'weekly' && rule.weekdays && rule.weekdays.length > 0) {
         if (rule.weekdays.includes(current.getDay())) {
           dates.push(dateStr);

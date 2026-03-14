@@ -1,12 +1,29 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CalendarDays, X } from 'lucide-react';
 import { format } from 'date-fns';
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core';
 import CalendarGrid from '../components/CalendarGrid';
 import QuickAdd from '../components/QuickAdd';
 import TodoDetail from '../components/TodoDetail';
-import { fetchCalendarTodos, fetchGroups, createTodo, completeTodo, reopenTodo, updateTodo, deleteTodo } from '../api';
+import PriorityBadge from '../components/PriorityBadge';
+import {
+  fetchCalendarTodos,
+  fetchGroups,
+  createTodo,
+  updateTodo,
+  deleteTodo,
+  detachRecurringInstance,
+} from '../api';
 import type { CalendarTodo, TodoPriority, RecurrenceRule } from '@networth/shared';
 
 export default function Calendar() {
@@ -14,6 +31,11 @@ export default function Calendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [quickAddDate, setQuickAddDate] = useState<string | null>(null);
   const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
+  const [activeDrag, setActiveDrag] = useState<CalendarTodo | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
 
   const monthKey = format(currentMonth, 'yyyy-MM');
 
@@ -55,9 +77,13 @@ export default function Calendar() {
     },
   });
 
-  const handleAddTodo = (date: string) => {
-    setQuickAddDate(date);
-  };
+  const detachMutation = useMutation({
+    mutationFn: ({ id, originalDate, newDate }: { id: string; originalDate: string; newDate: string }) =>
+      detachRecurringInstance(id, originalDate, newDate),
+    onSuccess: invalidateAll,
+  });
+
+  const handleAddTodo = (date: string) => setQuickAddDate(date);
 
   const handleClickTodo = (todo: CalendarTodo) => {
     // For recurring instances, the id is `todoId_date` — extract the real todoId
@@ -76,6 +102,34 @@ export default function Calendar() {
     setQuickAddDate(null);
   };
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const todo = event.active.data.current?.todo as CalendarTodo | undefined;
+    if (todo) setActiveDrag(todo);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    setActiveDrag(null);
+
+    if (!over) return;
+
+    const todo = active.data.current?.todo as CalendarTodo | undefined;
+    if (!todo) return;
+
+    const targetDate = over.data.current?.date as string | undefined;
+    if (!targetDate || targetDate === todo.dueDate) return;
+
+    if (todo.isRecurringInstance) {
+      // Detach: create standalone copy on new date, add exception to parent
+      const realId = todo.id.split('_')[0];
+      const originalDate = todo.dueDate;
+      detachMutation.mutate({ id: realId, originalDate, newDate: targetDate });
+    } else {
+      // Simple move: update due date
+      updateMutation.mutate({ id: todo.id, data: { dueDate: targetDate } });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -89,7 +143,7 @@ export default function Calendar() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
-          <p className="text-sm text-gray-500">See your tasks across the month</p>
+          <p className="text-sm text-gray-500">Drag tasks between days to reschedule</p>
         </div>
       </motion.div>
 
@@ -108,14 +162,37 @@ export default function Calendar() {
         </motion.div>
       )}
 
-      {/* Calendar */}
-      <CalendarGrid
-        currentMonth={currentMonth}
-        onMonthChange={setCurrentMonth}
-        todos={calendarTodos}
-        onAddTodo={handleAddTodo}
-        onClickTodo={handleClickTodo}
-      />
+      {/* Calendar with DnD */}
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <CalendarGrid
+          currentMonth={currentMonth}
+          onMonthChange={setCurrentMonth}
+          todos={calendarTodos}
+          onAddTodo={handleAddTodo}
+          onClickTodo={handleClickTodo}
+          isDraggingActive={!!activeDrag}
+        />
+
+        <DragOverlay>
+          {activeDrag && (
+            <motion.div
+              initial={{ scale: 1, rotate: 0 }}
+              animate={{ scale: 1.08, rotate: 1 }}
+              className="bg-white rounded-lg border border-primary-200 shadow-xl px-2.5 py-1.5 w-[180px] opacity-95"
+            >
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-medium text-gray-900 truncate">{activeDrag.title}</span>
+              </div>
+              <div className="mt-0.5">
+                <PriorityBadge priority={activeDrag.priority} size="xs" />
+              </div>
+              {activeDrag.isRecurringInstance && (
+                <p className="text-[9px] text-primary-500 mt-0.5 font-medium">Will detach from series</p>
+              )}
+            </motion.div>
+          )}
+        </DragOverlay>
+      </DndContext>
 
       {/* Todo Detail Modal */}
       <AnimatePresence>

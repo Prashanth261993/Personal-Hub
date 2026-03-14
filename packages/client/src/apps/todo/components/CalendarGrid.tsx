@@ -23,6 +23,7 @@ interface CalendarGridProps {
   todos: CalendarTodo[];
   onAddTodo: (date: string) => void;
   onClickTodo: (todo: CalendarTodo) => void;
+  isDraggingActive?: boolean;
 }
 
 export default function CalendarGrid({
@@ -31,6 +32,7 @@ export default function CalendarGrid({
   todos,
   onAddTodo,
   onClickTodo,
+  isDraggingActive,
 }: CalendarGridProps) {
   const [direction, setDirection] = useState(0);
 
@@ -134,6 +136,7 @@ export default function CalendarGrid({
                 todos={todosByDate.get(dateStr) || []}
                 onAddTodo={onAddTodo}
                 onClickTodo={onClickTodo}
+                isDraggingActive={isDraggingActive}
               />
             );
           })}

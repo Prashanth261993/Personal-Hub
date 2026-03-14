@@ -119,6 +119,7 @@ export interface RecurrenceRule {
   interval: number;            // every N units
   weekdays?: number[];         // 0=Sun..6=Sat (for weekly)
   endDate?: string;            // optional YYYY-MM-DD
+  exceptions?: string[];       // dates to skip (YYYY-MM-DD) — used when a recurring instance is detached
 }
 
 export interface TodoGroup {

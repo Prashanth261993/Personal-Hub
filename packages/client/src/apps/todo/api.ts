@@ -34,6 +34,8 @@ export const moveTodo = (id: string, data: MoveTodoRequest) => api.put<Todo>(`/t
 export const completeTodo = (id: string, date?: string) => api.put<Todo>(`/todos/${id}/complete`, { date }).then(r => r.data);
 export const reopenTodo = (id: string) => api.put<Todo>(`/todos/${id}/reopen`).then(r => r.data);
 export const reorderTodos = (data: BatchReorderRequest) => api.put('/todos/reorder', data).then(r => r.data);
+export const detachRecurringInstance = (id: string, originalDate: string, newDate: string) =>
+  api.post<Todo>(`/todos/${id}/detach`, { originalDate, newDate }).then(r => r.data);
 
 // ── Stats ──
 export const fetchStats = () => api.get<TodoStats>('/stats').then(r => r.data);

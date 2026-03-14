@@ -10,18 +10,46 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  useDroppable,
   type DragStartEvent,
   type DragEndEvent,
   type DragOverEvent,
   type CollisionDetection,
   type UniqueIdentifier,
 } from '@dnd-kit/core';
-import { sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
-import { motion } from 'framer-motion';
-import { Plus } from 'lucide-react';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, Trash2 } from 'lucide-react';
 import KanbanColumn from './KanbanColumn';
 import PriorityBadge from './PriorityBadge';
+import ConfirmModal from '../../../components/ConfirmModal';
 import type { TodoSummary, TodoGroup } from '@networth/shared';
+
+const TRASH_ID = '__trash__';
+
+function TrashZone() {
+  const { setNodeRef, isOver } = useDroppable({ id: TRASH_ID });
+
+  return (
+    <motion.div
+      ref={setNodeRef}
+      initial={{ opacity: 0, y: 40, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 40, scale: 0.9 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      className={`flex items-center justify-center gap-3 mx-auto w-full max-w-sm py-5 rounded-2xl border-2 border-dashed transition-all duration-200 ${
+        isOver
+          ? 'border-red-400 bg-red-50 shadow-lg shadow-red-100/50 scale-105'
+          : 'border-gray-300 bg-gray-50/80'
+      }`}
+    >
+      <Trash2 className={`w-6 h-6 transition-colors ${isOver ? 'text-red-500' : 'text-gray-400'}`} />
+      <span className={`text-sm font-medium transition-colors ${isOver ? 'text-red-600' : 'text-gray-500'}`}>
+        Drop here to delete
+      </span>
+    </motion.div>
+  );
+}
 
 interface KanbanBoardProps {
   groups: TodoGroup[];
@@ -49,7 +77,10 @@ export default function KanbanBoard({
   onEditGroup,
 }: KanbanBoardProps) {
   const [activeTodo, setActiveTodo] = useState<TodoSummary | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const lastOverId = useRef<UniqueIdentifier | null>(null);
+
+  const isDragging = !!activeTodo;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -77,6 +108,7 @@ export default function KanbanBoard({
   const allItemIds = todos.filter(t => !t.parentId).map(t => t.id);
 
   const findContainer = (id: UniqueIdentifier): string | undefined => {
+    if (id === TRASH_ID) return TRASH_ID;
     // Check if the id is a group id (droppable column)
     if (groupIds.includes(id as string)) return id as string;
     // Otherwise it's a todo id — find which group it belongs to
@@ -102,7 +134,7 @@ export default function KanbanBoard({
 
       if (overId != null) {
         // If the collision is with a group (column), find the closest item within
-        if (groupIds.includes(overId as string)) {
+        if (overId !== TRASH_ID && groupIds.includes(overId as string)) {
           const containerItems = (todosByGroup.get(overId as string) || [])
             .filter(t => t.status === 'open');
           if (containerItems.length > 0) {
@@ -156,6 +188,12 @@ export default function KanbanBoard({
     const activeId = active.id as string;
     const overId = over.id as string;
 
+    // Dropped on trash zone
+    if (overId === TRASH_ID || findContainer(overId) === TRASH_ID) {
+      setPendingDelete(activeId);
+      return;
+    }
+
     const activeContainer = findContainer(activeId);
     const overContainer = findContainer(overId);
 
@@ -187,59 +225,103 @@ export default function KanbanBoard({
     onMoveTodo(activeId, targetGroupId, newSortOrder);
   };
 
+  const handleConfirmDelete = () => {
+    if (pendingDelete) {
+      onDelete(pendingDelete);
+      setPendingDelete(null);
+    }
+  };
+
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={collisionDetection}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2">
-        {groups.map(group => (
-          <KanbanColumn
-            key={group.id}
-            group={group}
-            todos={todosByGroup.get(group.id) || []}
-            allGroups={groups}
-            onAddTodo={onAddTodo}
-            onComplete={onComplete}
-            onReopen={onReopen}
-            onUpdate={onUpdate}
-            onDelete={onDelete}
-            onEditGroup={onEditGroup}
-          />
-        ))}
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={collisionDetection}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        {/* Overlay that greys out non-board areas */}
+        <AnimatePresence>
+          {isDragging && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/5 backdrop-blur-[1px] z-10 pointer-events-none"
+            />
+          )}
+        </AnimatePresence>
 
-        {/* Add Group Column */}
-        <motion.button
-          onClick={onNewGroup}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="flex flex-col items-center justify-center min-w-[200px] h-40 bg-gray-50/50 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 hover:text-primary-500 hover:border-primary-300 hover:bg-primary-50/20 transition-colors flex-shrink-0"
-        >
-          <Plus className="w-6 h-6 mb-1" />
-          <span className="text-sm font-medium">Add Group</span>
-        </motion.button>
-      </div>
+        <div className={`relative ${isDragging ? 'z-20' : ''}`}>
+          <div className="flex gap-4 overflow-x-auto pb-4 -mx-2 px-2">
+            {groups.map(group => (
+              <KanbanColumn
+                key={group.id}
+                group={group}
+                todos={todosByGroup.get(group.id) || []}
+                allGroups={groups}
+                onAddTodo={onAddTodo}
+                onComplete={onComplete}
+                onReopen={onReopen}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
+                onEditGroup={onEditGroup}
+              />
+            ))}
 
-      {/* Drag Overlay */}
-      <DragOverlay>
-        {activeTodo && (
-          <motion.div
-            initial={{ scale: 1, rotate: 0 }}
-            animate={{ scale: 1.05, rotate: 2 }}
-            className="bg-white rounded-xl border border-primary-200 shadow-xl p-3 w-[280px] opacity-90"
-          >
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-900">{activeTodo.title}</span>
-            </div>
-            <div className="mt-1">
-              <PriorityBadge priority={activeTodo.priority} size="xs" />
-            </div>
-          </motion.div>
-        )}
-      </DragOverlay>
-    </DndContext>
+            {/* Add Group Column — hidden while dragging */}
+            {!isDragging && (
+              <motion.button
+                onClick={onNewGroup}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex flex-col items-center justify-center min-w-[200px] h-40 bg-gray-50/50 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 hover:text-primary-500 hover:border-primary-300 hover:bg-primary-50/20 transition-colors flex-shrink-0"
+              >
+                <Plus className="w-6 h-6 mb-1" />
+                <span className="text-sm font-medium">Add Group</span>
+              </motion.button>
+            )}
+          </div>
+
+          {/* Trash zone — appears at bottom during drag */}
+          <AnimatePresence>
+            {isDragging && (
+              <div className="mt-4">
+                <TrashZone />
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Drag Overlay */}
+        <DragOverlay>
+          {activeTodo && (
+            <motion.div
+              initial={{ scale: 1, rotate: 0 }}
+              animate={{ scale: 1.05, rotate: 2 }}
+              className="bg-white rounded-xl border border-primary-200 shadow-xl p-3 w-[280px] opacity-90"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-900">{activeTodo.title}</span>
+              </div>
+              <div className="mt-1">
+                <PriorityBadge priority={activeTodo.priority} size="xs" />
+              </div>
+            </motion.div>
+          )}
+        </DragOverlay>
+      </DndContext>
+
+      <ConfirmModal
+        open={!!pendingDelete}
+        title="Delete Task"
+        message="Are you sure you want to delete this task? This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
+    </>
   );
 }

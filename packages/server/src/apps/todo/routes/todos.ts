@@ -336,6 +336,69 @@ router.put('/reorder', (req: Request, res: Response) => {
   }
 });
 
+// POST /api/todo/todos/:id/detach — detach a recurring instance to a standalone todo
+router.post('/:id/detach', (req: Request, res: Response) => {
+  try {
+    const existing = db.select().from(todos).where(eq(todos.id, paramId(req))).get();
+    if (!existing) {
+      res.status(404).json({ error: 'Todo not found' });
+      return;
+    }
+
+    const { originalDate, newDate } = req.body as { originalDate: string; newDate: string };
+    if (!originalDate || !newDate) {
+      res.status(400).json({ error: 'originalDate and newDate are required' });
+      return;
+    }
+
+    const recurrence = parseRecurrence(existing.recurrence);
+    if (!recurrence) {
+      res.status(400).json({ error: 'Todo is not recurring' });
+      return;
+    }
+
+    // Add exception to parent's recurrence
+    const exceptions = recurrence.exceptions || [];
+    if (!exceptions.includes(originalDate)) {
+      exceptions.push(originalDate);
+    }
+    recurrence.exceptions = exceptions;
+
+    db.update(todos)
+      .set({
+        recurrence: serializeRecurrence(recurrence),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(todos.id, paramId(req)))
+      .run();
+
+    // Create standalone copy with new date
+    const now = new Date().toISOString();
+    const newTodo = {
+      id: uuidv4(),
+      groupId: existing.groupId,
+      title: existing.title,
+      description: existing.description,
+      priority: existing.priority,
+      status: 'open' as const,
+      dueDate: newDate,
+      recurrence: null,
+      parentId: null,
+      sortOrder: 0,
+      completedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    db.insert(todos).values(newTodo).run();
+
+    res.status(201).json(toTodo(newTodo));
+  } catch (err) {
+    console.error('Error detaching recurring instance:', err);
+    res.status(500).json({ error: 'Failed to detach recurring instance' });
+  }
+});
+
 // DELETE /api/todo/todos/:id
 router.delete('/:id', (req: Request, res: Response) => {
   try {
