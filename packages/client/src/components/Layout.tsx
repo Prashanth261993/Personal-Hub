@@ -12,6 +12,7 @@ import {
   ChevronRight,
   ChevronDown,
   ListTodo,
+  CalendarDays,
 } from 'lucide-react';
 
 interface NavApp {
@@ -40,7 +41,10 @@ const apps: NavApp[] = [
     label: 'Planning',
     icon: ListTodo,
     basePath: '/todo',
-    children: [],
+    children: [
+      { to: '/todo', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/todo/calendar', label: 'Calendar', icon: CalendarDays },
+    ],
   },
 ];
 

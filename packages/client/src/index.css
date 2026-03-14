@@ -22,4 +22,15 @@
 
   --color-warning-50: #fffbeb;
   --color-warning-500: #f59e0b;
+
+  /* Priority colors */
+  --color-priority-high: #ef4444;
+  --color-priority-high-bg: #fef2f2;
+  --color-priority-high-border: #fecaca;
+  --color-priority-medium: #f59e0b;
+  --color-priority-medium-bg: #fffbeb;
+  --color-priority-medium-border: #fde68a;
+  --color-priority-low: #10b981;
+  --color-priority-low-bg: #ecfdf5;
+  --color-priority-low-border: #a7f3d0;
 }

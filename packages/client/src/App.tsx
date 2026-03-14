@@ -8,6 +8,8 @@ import NewSnapshot from './apps/networth/pages/NewSnapshot';
 import EditSnapshot from './apps/networth/pages/EditSnapshot';
 import Insights from './apps/networth/pages/Insights';
 import Help from './apps/networth/pages/Help';
+import TodoDashboard from './apps/todo/pages/Dashboard';
+import TodoCalendar from './apps/todo/pages/Calendar';
 
 export default function App() {
   return (
@@ -22,6 +24,10 @@ export default function App() {
         <Route path="/networth/snapshots/new" element={<NewSnapshot />} />
         <Route path="/networth/snapshots/:id" element={<EditSnapshot />} />
         <Route path="/networth/insights" element={<Insights />} />
+
+        {/* Todo App */}
+        <Route path="/todo" element={<TodoDashboard />} />
+        <Route path="/todo/calendar" element={<TodoCalendar />} />
 
         {/* Platform */}
         <Route path="/help" element={<Help />} />

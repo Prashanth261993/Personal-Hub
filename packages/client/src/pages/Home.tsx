@@ -2,12 +2,18 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Wallet, ListTodo, ArrowRight } from 'lucide-react';
 import { fetchInsightsSummary } from '../apps/networth/api';
+import { fetchStats as fetchTodoStats } from '../apps/todo/api';
 import { formatCurrency } from '@networth/shared';
 
 export default function Home() {
   const { data: summary } = useQuery({
     queryKey: ['insights-summary'],
     queryFn: fetchInsightsSummary,
+  });
+
+  const { data: todoStats } = useQuery({
+    queryKey: ['todo-stats'],
+    queryFn: fetchTodoStats,
   });
 
   return (
@@ -48,17 +54,41 @@ export default function Home() {
           )}
         </Link>
 
-        {/* Planning / Todo Card (Coming Soon) */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 opacity-60">
+        {/* Planning / Todo Card */}
+        <Link
+          to="/todo"
+          className="bg-white rounded-xl border border-gray-200 p-6 hover:border-primary-300 hover:shadow-md transition-all group"
+        >
           <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center">
-              <ListTodo className="w-6 h-6 text-gray-400" />
+            <div className="w-12 h-12 bg-violet-50 rounded-xl flex items-center justify-center">
+              <ListTodo className="w-6 h-6 text-violet-600" />
             </div>
-            <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded-full">Coming Soon</span>
+            <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-primary-500 transition-colors" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-1">Planning & Todos</h3>
-          <p className="text-sm text-gray-500">Task management, project planning, and goal setting.</p>
-        </div>
+          <p className="text-sm text-gray-500 mb-4">Task management, project planning, and goal setting.</p>
+          {todoStats ? (
+            <div className="pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Open Tasks</p>
+                  <p className="text-xl font-bold text-gray-900">{todoStats.totalOpen}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-400 mb-1">Completed Today</p>
+                  <p className="text-xl font-bold text-green-600">{todoStats.completedToday}</p>
+                </div>
+              </div>
+              {todoStats.currentStreak > 0 && (
+                <p className="text-xs text-amber-600 mt-2">🔥 {todoStats.currentStreak} day streak</p>
+              )}
+            </div>
+          ) : (
+            <div className="pt-3 border-t border-gray-100">
+              <p className="text-sm text-gray-400">Get started by creating your first task</p>
+            </div>
+          )}
+        </Link>
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ A personal productivity platform with a modular app architecture. React SPA fron
 | App | Route | Description | Status |
 |-----|-------|-------------|--------|
 | **Net Worth** | `/networth` | Track assets and liabilities for each family member, view trends, and get insights | Active |
-| **Planning / Todo** | `/todo` | Task and project management | Coming Soon |
+| **Planning / Todo** | `/todo` | Ultra-modern task management with Kanban board, calendar view, recurring tasks, subtasks, rich-text notes, and drag-and-drop | Active |
 
 ## Architecture
 
@@ -18,7 +18,7 @@ PersonalHub/
 │   │   ├── family-members.json
 │   │   ├── categories.json
 │   │   └── goals.json
-│   └── todo/                    # Todo JSON configs (future)
+│   └── todo/                    # (reserved for future todo configs)
 ├── data/                        # SQLite databases (gitignored)
 ├── packages/
 │   ├── shared/                  # @networth/shared — TypeScript types & utilities
@@ -26,14 +26,14 @@ PersonalHub/
 │   │   └── src/
 │   │       ├── apps/
 │   │       │   ├── networth/    # Net Worth routes
-│   │       │   └── todo/        # Todo routes (future)
+│   │       │   └── todo/        # Todo routes (groups, todos, stats)
 │   │       ├── db/              # Drizzle ORM + SQLite
 │   │       └── lib/             # Shared server helpers
 │   └── client/                  # Vite + React SPA (port 5173)
 │       └── src/
 │           ├── apps/
 │           │   ├── networth/    # Net Worth pages & API
-│           │   └── todo/        # Todo pages & API (future)
+│           │   └── todo/        # Todo pages, API & 16 components
 │           ├── components/      # Platform-level components (Layout, etc.)
 │           ├── lib/             # Shared client helpers
 │           └── pages/           # Platform-level pages (Home)
@@ -43,7 +43,7 @@ PersonalHub/
 **Key decisions:**
 - **App-scoped structure**: Each app has its own directory under `config/`, `server/src/apps/`, and `client/src/apps/`
 - **Namespaced API routes**: Each app is mounted at `/api/<appName>/*`
-- **Config vs DB split**: App configurations are JSON files in `config/<appName>/` (version-controlled). Data lives in SQLite at `data/` (gitignored)
+- **Config vs DB split**: App configurations are JSON files in `config/<appName>/` (version-controlled). Data lives in SQLite at `data/` (gitignored). The Todo app stores everything (groups + todos) in SQLite since they are dynamic user data.
 - **Monetary values**: Stored as integers in cents. Liabilities are negative. Net worth = `SUM(all values)`
 - **No authentication**: Personal tool — all data accessible to anyone with UI access
 
@@ -106,6 +106,27 @@ Navigate to **http://localhost:5173** — the Home page shows all available apps
 | GET | `/api/networth/insights/trends` | Time-series net worth data for charts |
 | GET | `/api/networth/insights/summary` | Current totals, changes, breakdowns |
 
+### Todo (`/api/todo`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/todo/groups` | List all groups ordered by sort_order |
+| POST | `/api/todo/groups` | Create a new group |
+| PUT | `/api/todo/groups/reorder` | Batch reorder groups |
+| PUT | `/api/todo/groups/:id` | Update a group |
+| DELETE | `/api/todo/groups/:id` | Delete a group and its todos |
+| GET | `/api/todo/todos` | List todos (filterable: `?groupId=`, `?status=`, `?priority=`, `?dueBefore=`, `?dueAfter=`) |
+| POST | `/api/todo/todos` | Create a new todo |
+| GET | `/api/todo/todos/:id` | Get todo with subtasks |
+| PUT | `/api/todo/todos/:id` | Update a todo |
+| DELETE | `/api/todo/todos/:id` | Delete a todo and its subtasks |
+| PUT | `/api/todo/todos/:id/move` | Move todo to a different group |
+| PUT | `/api/todo/todos/:id/complete` | Mark complete (recurring: logs completion, stays open) |
+| PUT | `/api/todo/todos/:id/reopen` | Reopen a completed todo |
+| PUT | `/api/todo/todos/reorder` | Batch reorder todos |
+| GET | `/api/todo/stats` | Aggregated stats (open/completed counts, streaks, daily completions) |
+| GET | `/api/todo/stats/calendar?month=YYYY-MM` | Calendar data with expanded recurring instances |
+
 ---
 
 ## Client Pages
@@ -119,6 +140,8 @@ Navigate to **http://localhost:5173** — the Home page shows all available apps
 | `/networth/snapshots/new` | New Snapshot | Create a snapshot with entries |
 | `/networth/snapshots/:id` | Edit Snapshot | View and modify a snapshot |
 | `/networth/insights` | Insights | Trends, projections, goal tracking |
+| `/todo` | Todo Dashboard | Quick add, today's focus, overdue/upcoming, stats, and Kanban board |
+| `/todo/calendar` | Todo Calendar | Monthly calendar grid with todo chips per day |
 | `/help` | Help | In-app guide |
 
 ---
@@ -183,6 +206,32 @@ Contains `assetCategories` and `liabilityCategories` arrays. Each category has a
 ```
 
 > **Note:** `targetValue` is in cents (50000000 = $500,000).
+
+---
+
+## Todo App
+
+The Planning / Todo app is a feature-rich task manager built with an ultra-modern UI:
+
+- **Dashboard** — 5 widgets: Quick Add bar, Today's Focus, Overdue & Upcoming, Completion Stats (with animated counters and streak tracking), and a full Kanban board
+- **Kanban Board** — groups as columns, drag-and-drop todos between groups via @dnd-kit, inline expand to edit
+- **Calendar** — custom-built month grid with date-fns, todo chips per day, month navigation with slide animation
+- **Priorities** — 3 levels (High/red, Medium/amber, Low/green) with color-coded badges
+- **Recurring Tasks** — daily, weekly, monthly, yearly with custom intervals and weekday selection. Recurring todos stay open; completions are tracked per-date
+- **Subtasks** — todos with a `parentId` (same table, max 1 level deep)
+- **Rich Notes** — Tiptap WYSIWYG editor with bold, italic, bullet list, task checklist, and code blocks
+- **Groups** — dynamic groups with custom name, color, and Lucide icon (auto-suggested from name keywords)
+- **Animations** — Framer Motion for layout transitions, React Spring for animated counters and micro-interactions
+
+### Todo Tech Stack
+
+| Package | Purpose |
+|---------|--------|
+| `@dnd-kit/core` + `@dnd-kit/sortable` | Drag-and-drop for Kanban board |
+| `framer-motion` | Layout animations, presence, page transitions |
+| `@react-spring/web` | Spring-physics animated counters |
+| `@tiptap/react` + extensions | Rich-text WYSIWYG editor |
+| `date-fns` | Date manipulation for calendar and recurrence |
 
 ---
 
