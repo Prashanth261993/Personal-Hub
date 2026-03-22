@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { runMigrations } from './db/migrate.js';
 import networthRouter from './apps/networth/index.js';
+import todoRouter from './apps/todo/index.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,6 +17,7 @@ console.log('Database migrations complete.');
 
 // App Routes
 app.use('/api/networth', networthRouter);
+app.use('/api/todo', todoRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {

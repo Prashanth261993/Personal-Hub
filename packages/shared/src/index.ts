@@ -108,6 +108,133 @@ export interface GoalsConfig {
   goals: Goal[];
 }
 
+// ── Todo App Types ──
+
+export type TodoPriority = 'high' | 'medium' | 'low';
+export type TodoStatus = 'open' | 'completed';
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+export interface RecurrenceRule {
+  frequency: RecurrenceFrequency;
+  interval: number;            // every N units
+  weekdays?: number[];         // 0=Sun..6=Sat (for weekly)
+  endDate?: string;            // optional YYYY-MM-DD
+  exceptions?: string[];       // dates to skip (YYYY-MM-DD) — used when a recurring instance is detached
+}
+
+export interface TodoGroup {
+  id: string;
+  name: string;
+  color: string;               // hex color
+  icon: string;                // Lucide icon name
+  sortOrder: number;
+  createdAt: string;           // ISO datetime
+}
+
+export interface Todo {
+  id: string;
+  groupId: string;
+  title: string;
+  description: string | null;  // markdown
+  priority: TodoPriority;
+  status: TodoStatus;
+  dueDate: string | null;      // YYYY-MM-DD
+  recurrence: RecurrenceRule | null;
+  parentId: string | null;     // subtask parent
+  sortOrder: number;
+  completedAt: string | null;  // ISO datetime
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TodoSummary {
+  id: string;
+  groupId: string;
+  title: string;
+  priority: TodoPriority;
+  status: TodoStatus;
+  dueDate: string | null;
+  recurrence: RecurrenceRule | null;
+  parentId: string | null;
+  sortOrder: number;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  subtaskCount: number;
+  subtaskCompletedCount: number;
+}
+
+export interface CreateTodoRequest {
+  groupId: string;
+  title: string;
+  description?: string;
+  priority?: TodoPriority;
+  dueDate?: string;
+  recurrence?: RecurrenceRule;
+  parentId?: string;
+}
+
+export interface UpdateTodoRequest {
+  groupId?: string;
+  title?: string;
+  description?: string | null;
+  priority?: TodoPriority;
+  status?: TodoStatus;
+  dueDate?: string | null;
+  recurrence?: RecurrenceRule | null;
+  sortOrder?: number;
+}
+
+export interface MoveTodoRequest {
+  groupId: string;
+  sortOrder: number;
+}
+
+export interface BatchReorderRequest {
+  todos: { id: string; sortOrder: number; groupId?: string }[];
+}
+
+export interface CreateGroupRequest {
+  name: string;
+  color: string;
+  icon: string;
+}
+
+export interface UpdateGroupRequest {
+  name?: string;
+  color?: string;
+  icon?: string;
+}
+
+export interface RecurringCompletion {
+  id: string;
+  todoId: string;
+  completionDate: string;     // YYYY-MM-DD
+  completedAt: string;        // ISO datetime
+}
+
+export interface TodoStats {
+  totalOpen: number;
+  totalCompleted: number;
+  completedToday: number;
+  completedThisWeek: number;
+  currentStreak: number;
+  longestStreak: number;
+  completionsByDay: { date: string; count: number }[];
+}
+
+export interface CalendarTodo {
+  id: string;
+  title: string;
+  priority: TodoPriority;
+  status: TodoStatus;
+  dueDate: string;
+  groupColor: string;
+  groupName: string;
+  isRecurring: boolean;
+  isRecurringInstance?: boolean;  // true when expanded from recurrence
+}
+
 // ── Platform Types ──
 
 export interface AppDefinition {
