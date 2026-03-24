@@ -235,6 +235,224 @@ export interface CalendarTodo {
   isRecurringInstance?: boolean;  // true when expanded from recurrence
 }
 
+// ── Stocks App Types ──
+
+export type StockTrackingMode = 'watchlist' | 'holding' | 'both';
+export type StockStatus = 'active' | 'archived';
+export type StockVersionSource = 'manual' | 'api-refresh' | 'restore';
+export type StockRefreshState = 'never' | 'fresh' | 'stale' | 'error';
+
+export interface StockMetricsSnapshot {
+  openPrice: number | null;             // cents
+  highPrice: number | null;             // cents
+  lowPrice: number | null;              // cents
+  currentPrice: number | null;          // cents
+  previousClosePrice: number | null;    // cents
+  priceChange: number | null;           // cents
+  priceChangePercent: number | null;    // percentage
+  analystTargetPrice: number | null;    // cents
+  volume: number | null;
+  latestTradingDay: string | null;      // YYYY-MM-DD
+  peRatio: number | null;
+  pbRatio: number | null;
+  psRatio: number | null;
+  epsGrowth: number | null;             // percentage, e.g. 12.4
+  marketCap: number | null;             // USD
+  beta: number | null;
+  fiftyTwoWeekHigh: number | null;      // cents
+  fiftyTwoWeekLow: number | null;       // cents
+  fiftyDayMovingAverage: number | null; // cents
+  twoHundredDayMovingAverage: number | null; // cents
+  dividendYield: number | null;         // percentage
+  profitMargin: number | null;          // percentage
+  operatingMarginTtm: number | null;    // percentage
+  returnOnAssetsTtm: number | null;     // percentage
+  returnOnEquityTtm: number | null;     // percentage
+  quarterlyEarningsGrowthYoy: number | null; // percentage
+  quarterlyRevenueGrowthYoy: number | null;  // percentage
+  sharesOutstanding: number | null;
+  revenueTtm: number | null;            // USD
+  grossProfitTtm: number | null;        // USD
+}
+
+export interface Stock {
+  id: string;
+  symbol: string;
+  companyName: string;
+  exchange: string | null;
+  sector: string | null;
+  industry: string | null;
+  trackingMode: StockTrackingMode;
+  status: StockStatus;
+  thesis: string | null;
+  notesHtml: string | null;
+  sharesMilli: number | null;
+  averageCostBasis: number | null;      // cents
+  conviction: string | null;
+  manualTargetPrice: number | null;     // cents
+  manualCurrentPrice: number | null;    // cents
+  manualPeRatio: number | null;
+  manualPbRatio: number | null;
+  manualPsRatio: number | null;
+  manualEpsGrowth: number | null;       // percentage
+  lastManualUpdateAt: string | null;
+  lastSyncedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StockMetricsCache {
+  id: string;
+  stockId: string;
+  source: 'alpha-vantage';
+  refreshState: StockRefreshState;
+  openPrice: number | null;
+  highPrice: number | null;
+  lowPrice: number | null;
+  currentPrice: number | null;          // cents
+  previousClosePrice: number | null;
+  priceChange: number | null;
+  priceChangePercent: number | null;
+  analystTargetPrice: number | null;    // cents
+  volume: number | null;
+  latestTradingDay: string | null;
+  peRatio: number | null;
+  pbRatio: number | null;
+  psRatio: number | null;
+  epsGrowth: number | null;             // percentage
+  marketCap: number | null;             // USD
+  beta: number | null;
+  fiftyTwoWeekHigh: number | null;
+  fiftyTwoWeekLow: number | null;
+  fiftyDayMovingAverage: number | null;
+  twoHundredDayMovingAverage: number | null;
+  dividendYield: number | null;
+  profitMargin: number | null;
+  operatingMarginTtm: number | null;
+  returnOnAssetsTtm: number | null;
+  returnOnEquityTtm: number | null;
+  quarterlyEarningsGrowthYoy: number | null;
+  quarterlyRevenueGrowthYoy: number | null;
+  sharesOutstanding: number | null;
+  revenueTtm: number | null;
+  grossProfitTtm: number | null;
+  analystRating: string | null;
+  fetchedAt: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StockLookupResponse {
+  symbol: string;
+  companyName: string | null;
+  exchange: string | null;
+  sector: string | null;
+  industry: string | null;
+  analystRating: string | null;
+  metrics: StockMetricsSnapshot;
+}
+
+export interface StockVersion {
+  id: string;
+  stockId: string;
+  source: StockVersionSource;
+  createdAt: string;
+  payload: StockVersionPayload;
+}
+
+export interface StockVersionPayload {
+  symbol: string;
+  companyName: string;
+  exchange: string | null;
+  sector: string | null;
+  industry: string | null;
+  trackingMode: StockTrackingMode;
+  status: StockStatus;
+  thesis: string | null;
+  notesHtml: string | null;
+  sharesMilli: number | null;
+  averageCostBasis: number | null;
+  conviction: string | null;
+  manualTargetPrice: number | null;
+  manualCurrentPrice: number | null;
+  manualPeRatio: number | null;
+  manualPbRatio: number | null;
+  manualPsRatio: number | null;
+  manualEpsGrowth: number | null;
+}
+
+export interface CreateStockRequest {
+  symbol: string;
+  companyName: string;
+  exchange?: string | null;
+  sector?: string | null;
+  industry?: string | null;
+  trackingMode: StockTrackingMode;
+  status?: StockStatus;
+  thesis?: string | null;
+  notesHtml?: string | null;
+  sharesMilli?: number | null;
+  averageCostBasis?: number | null;
+  conviction?: string | null;
+  manualTargetPrice?: number | null;
+  manualCurrentPrice?: number | null;
+  manualPeRatio?: number | null;
+  manualPbRatio?: number | null;
+  manualPsRatio?: number | null;
+  manualEpsGrowth?: number | null;
+}
+
+export interface UpdateStockRequest extends Partial<CreateStockRequest> {
+  refreshSource?: StockVersionSource;
+}
+
+export interface StockDashboardRow {
+  stock: Stock;
+  metrics: StockMetricsSnapshot;
+  refreshState: StockRefreshState;
+  analystRating: string | null;
+  upsidePercent: number | null;
+  positionValue: number | null;         // cents
+  lastFetchedAt: string | null;
+}
+
+export interface StocksDashboardSummary {
+  totalTracked: number;
+  holdingsCount: number;
+  watchlistCount: number;
+  averageUpsidePercent: number | null;
+  totalPositionValue: number;
+  staleCount: number;
+}
+
+export interface StocksDashboardResponse {
+  summary: StocksDashboardSummary;
+  rows: StockDashboardRow[];
+}
+
+export interface StockDetail extends Stock {
+  metricsCache: StockMetricsCache | null;
+  history: StockVersion[];
+  effectiveMetrics: StockMetricsSnapshot;
+  upsidePercent: number | null;
+  positionValue: number | null;
+}
+
+export interface RefreshStockResponse {
+  stockId: string;
+  refreshState: StockRefreshState;
+  metricsCache: StockMetricsCache | null;
+  message: string;
+}
+
+export interface StocksHomeSummary {
+  trackedCount: number;
+  holdingsCount: number;
+  averageUpsidePercent: number | null;
+  refreshedTodayCount: number;
+}
+
 // ── Platform Types ──
 
 export interface AppDefinition {
@@ -266,4 +484,8 @@ export function formatCurrency(cents: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(dollars);
+}
+
+export function formatPercent(value: number, fractionDigits = 1): string {
+  return `${value >= 0 ? '+' : ''}${value.toFixed(fractionDigits)}%`;
 }
