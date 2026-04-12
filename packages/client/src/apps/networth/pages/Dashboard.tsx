@@ -14,10 +14,46 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from 'recharts';
 
 const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4'];
+
+function BreakdownPanel({ title, data, colors }: { title: string; data: { name: string; value: number }[]; colors: string[] }) {
+  const total = data.reduce((s, d) => s + d.value, 0);
+  if (data.length === 0 || total === 0) return null;
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">{title}</h3>
+      <div className="flex items-center gap-6">
+        <div className="w-40 h-40 shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={data} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" stroke="none">
+                {data.map((_, i) => (
+                  <Cell key={i} fill={colors[i % colors.length]} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="flex-1 min-w-0 space-y-2">
+          {data.map((d, i) => {
+            const pct = ((d.value / total) * 100).toFixed(1);
+            return (
+              <div key={d.name} className="flex items-center gap-2 text-sm">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: colors[i % colors.length] }} />
+                <span className="text-gray-600 truncate flex-1">{d.name}</span>
+                <span className="text-gray-900 font-medium tabular-nums">${d.value.toLocaleString()}</span>
+                <span className="text-gray-400 tabular-nums w-12 text-right">{pct}%</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { data: summary, isLoading: loadingSummary } = useQuery({
@@ -162,53 +198,10 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Pie charts */}
+      {/* Breakdown panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {assetPieData.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Asset Breakdown</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={assetPieData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {assetPieData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-
-        {liabilityPieData.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Liability Breakdown</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={liabilityPieData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {liabilityPieData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[(i + 3) % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+        <BreakdownPanel title="Asset Breakdown" data={assetPieData} colors={COLORS} />
+        <BreakdownPanel title="Liability Breakdown" data={liabilityPieData} colors={COLORS.slice(3)} />
       </div>
     </div>
   );

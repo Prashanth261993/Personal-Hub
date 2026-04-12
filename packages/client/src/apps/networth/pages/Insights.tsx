@@ -162,29 +162,40 @@ function AssetAllocationChart({ summary }: { summary: any }) {
 
   if (assetData.length === 0) return null;
 
+  const total = assetData.reduce((s: number, d: any) => s + d.value, 0);
+
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
       <div className="flex items-center gap-2 mb-4">
         <PieChartIcon className="w-5 h-5 text-primary-600" />
         <h3 className="text-lg font-semibold text-gray-900">Asset Allocation</h3>
       </div>
-      <ResponsiveContainer width="100%" height={300}>
-        <PieChart>
-          <Pie
-            data={assetData}
-            cx="50%"
-            cy="50%"
-            outerRadius={100}
-            dataKey="value"
-            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-          >
-            {assetData.map((_: any, i: number) => (
-              <Cell key={i} fill={COLORS[i % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip formatter={(value: number) => `$${value.toLocaleString()}`} />
-        </PieChart>
-      </ResponsiveContainer>
+      <div className="flex items-center gap-6">
+        <div className="w-40 h-40 shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={assetData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" stroke="none">
+                {assetData.map((_: any, i: number) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="flex-1 min-w-0 space-y-2">
+          {assetData.map((d: any, i: number) => {
+            const pct = ((d.value / total) * 100).toFixed(1);
+            return (
+              <div key={d.name} className="flex items-center gap-2 text-sm">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                <span className="text-gray-600 truncate flex-1">{d.name}</span>
+                <span className="text-gray-900 font-medium tabular-nums">${d.value.toLocaleString()}</span>
+                <span className="text-gray-400 tabular-nums w-12 text-right">{pct}%</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -231,16 +242,19 @@ function CategoryBreakdownChart({ summary }: { summary: any }) {
 function ProjectionsChart({ trends, members }: { trends: any[]; members: any[] }) {
   if (trends.length < 2) return null;
 
-  // Calculate average monthly growth rate from the trend data
-  const combinedValues = trends.map((t) => t.combined);
-  const monthlyChanges: number[] = [];
-  for (let i = 1; i < combinedValues.length; i++) {
-    monthlyChanges.push(combinedValues[i] - combinedValues[i - 1]);
-  }
-  const avgMonthlyChange = monthlyChanges.reduce((a, b) => a + b, 0) / monthlyChanges.length;
-
+  // Calculate average monthly growth rate from the trend data by dividing total change by elapsed months
+  const firstDate = new Date(trends[0].date);
   const lastDate = new Date(trends[trends.length - 1].date);
-  const lastValue = combinedValues[combinedValues.length - 1];
+  const firstValue = trends[0].combined;
+  const lastValue = trends[trends.length - 1].combined;
+
+  const totalChange = lastValue - firstValue;
+  
+  // Calculate elapsed months (roughly 30.44 days per month). Cap at minimum 1 to avoid dividing by 0.
+  const elapsedMs = lastDate.getTime() - firstDate.getTime();
+  const elapsedMonths = Math.max(elapsedMs / (1000 * 60 * 60 * 24 * 30.436875), 1);
+  
+  const avgMonthlyChange = totalChange / elapsedMonths;
 
   // Project 12 months ahead
   const projectionMonths = 12;
@@ -269,7 +283,7 @@ function ProjectionsChart({ trends, members }: { trends: any[]; members: any[] }
         <TrendingUp className="w-5 h-5 text-primary-600" />
         <h3 className="text-lg font-semibold text-gray-900">12-Month Projection</h3>
         <span className="text-xs text-gray-400 ml-2">
-          Based on avg growth of {formatCurrency(Math.abs(avgMonthlyChange))}/period
+          Based on avg growth of {formatCurrency(Math.abs(avgMonthlyChange))}/mo
         </span>
       </div>
       <ResponsiveContainer width="100%" height={350}>
