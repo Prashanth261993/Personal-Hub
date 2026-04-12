@@ -138,6 +138,13 @@ async function fetchAlphaVantageFunction<T>(symbol: string, fn: string, apiKey: 
     throw new Error(payload['Error Message']);
   }
 
+  const keys = Object.keys(payload);
+  if (keys.length === 0) {
+    console.warn(`Alpha Vantage ${fn} returned empty response for ${symbol}`);
+  } else {
+    console.log(`Alpha Vantage ${fn} for ${symbol}: ${keys.length} fields (${keys.slice(0, 5).join(', ')}${keys.length > 5 ? '...' : ''})`);
+  }
+
   return payload as T;
 }
 
@@ -149,10 +156,9 @@ export async function fetchAlphaVantageMetrics(symbol: string): Promise<AlphaVan
   }
 
   const normalizedSymbol = symbol.trim().toUpperCase();
-  const [overview, quote] = await Promise.all([
-    fetchAlphaVantageFunction<AlphaVantageOverviewResponse>(normalizedSymbol, 'OVERVIEW', apiKey),
-    fetchAlphaVantageFunction<AlphaVantageQuoteResponse>(normalizedSymbol, 'GLOBAL_QUOTE', apiKey),
-  ]);
+  const overview = await fetchAlphaVantageFunction<AlphaVantageOverviewResponse>(normalizedSymbol, 'OVERVIEW', apiKey);
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+  const quote = await fetchAlphaVantageFunction<AlphaVantageQuoteResponse>(normalizedSymbol, 'GLOBAL_QUOTE', apiKey);
 
   const peRatio = parseNumber(overview.PERatio);
   const epsValue = parseNumber(overview.EPS);

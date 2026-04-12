@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Clock3, RefreshCw } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { formatCurrency, formatPercent } from '@networth/shared';
-import { fetchStock, refreshStock, updateStock } from '../api';
+import { fetchStock, lookupStock, updateStock } from '../api';
 import StockEditor from '../components/StockEditor';
 import { useStocksTheme } from '../useStocksTheme';
 
@@ -43,7 +43,7 @@ export default function StockDetail() {
   });
 
   const refreshMutation = useMutation({
-    mutationFn: () => refreshStock(stockId),
+    mutationFn: () => lookupStock(stock!.symbol),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stock', stockId] });
       queryClient.invalidateQueries({ queryKey: ['stocks-dashboard'] });
@@ -153,7 +153,7 @@ export default function StockDetail() {
           saving={updateMutation.isPending}
           refreshing={refreshMutation.isPending}
           onSave={(payload) => updateMutation.mutate(payload)}
-          onRefresh={() => refreshMutation.mutate()}
+          onRefresh={() => refreshMutation.mutateAsync()}
         />
       </div>
     </div>

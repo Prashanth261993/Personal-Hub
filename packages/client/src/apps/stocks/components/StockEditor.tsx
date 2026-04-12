@@ -106,7 +106,7 @@ export default function StockEditor({ stock, saving = false, refreshing = false,
 
     const result = await onRefresh(form.symbol);
 
-    if (!result || stock) {
+    if (!result) {
       return;
     }
 
@@ -117,6 +117,12 @@ export default function StockEditor({ stock, saving = false, refreshing = false,
       exchange: current.exchange.trim() ? current.exchange : result.exchange ?? current.exchange,
       sector: current.sector.trim() ? current.sector : result.sector ?? current.sector,
       industry: current.industry.trim() ? current.industry : result.industry ?? current.industry,
+      manualCurrentPrice: current.manualCurrentPrice.trim() ? current.manualCurrentPrice : toDollars(result.metrics.currentPrice),
+      manualTargetPrice: current.manualTargetPrice.trim() ? current.manualTargetPrice : toDollars(result.metrics.analystTargetPrice),
+      manualPeRatio: current.manualPeRatio.trim() ? current.manualPeRatio : result.metrics.peRatio?.toString() ?? '',
+      manualPbRatio: current.manualPbRatio.trim() ? current.manualPbRatio : result.metrics.pbRatio?.toString() ?? '',
+      manualPsRatio: current.manualPsRatio.trim() ? current.manualPsRatio : result.metrics.psRatio?.toString() ?? '',
+      manualEpsGrowth: current.manualEpsGrowth.trim() ? current.manualEpsGrowth : result.metrics.epsGrowth?.toString() ?? '',
     }));
   };
 
