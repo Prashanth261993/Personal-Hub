@@ -41,16 +41,19 @@ export default function Dashboard() {
 
   const createTodoMutation = useMutation({
     mutationFn: createTodo,
+    meta: { successMessage: 'Task created' },
     onSuccess: invalidateAll,
   });
 
   const completeMutation = useMutation({
     mutationFn: (id: string) => completeTodo(id),
+    meta: { successMessage: 'Task completed' },
     onSuccess: invalidateAll,
   });
 
   const reopenMutation = useMutation({
     mutationFn: (id: string) => reopenTodo(id),
+    meta: { successMessage: 'Task reopened' },
     onSuccess: invalidateAll,
   });
 
@@ -61,6 +64,7 @@ export default function Dashboard() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteTodo(id),
+    meta: { successMessage: 'Task deleted' },
     onSuccess: invalidateAll,
   });
 
@@ -72,16 +76,19 @@ export default function Dashboard() {
 
   const createGroupMutation = useMutation({
     mutationFn: (data: CreateGroupRequest) => createGroup(data),
+    meta: { successMessage: 'Group created' },
     onSuccess: invalidateAll,
   });
 
   const updateGroupMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateGroupRequest }) => updateGroup(id, data),
+    meta: { successMessage: 'Group updated' },
     onSuccess: invalidateAll,
   });
 
   const deleteGroupMutation = useMutation({
     mutationFn: (id: string) => deleteGroupApi(id),
+    meta: { successMessage: 'Group deleted' },
     onSuccess: invalidateAll,
   });
 

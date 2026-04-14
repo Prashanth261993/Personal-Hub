@@ -324,6 +324,7 @@ function GoalTracker({ summary, trends }: { summary: any; trends: any[] }) {
 
   const mutation = useMutation({
     mutationFn: updateGoals,
+    meta: { successMessage: 'Goals saved' },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['goals'] }),
   });
 

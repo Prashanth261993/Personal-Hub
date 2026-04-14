@@ -35,6 +35,7 @@ export default function StockDetail() {
 
   const updateMutation = useMutation({
     mutationFn: (payload: Parameters<typeof updateStock>[1]) => updateStock(stockId, payload),
+    meta: { successMessage: 'Stock saved' },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stock', stockId] });
       queryClient.invalidateQueries({ queryKey: ['stocks-dashboard'] });
@@ -44,6 +45,7 @@ export default function StockDetail() {
 
   const refreshMutation = useMutation({
     mutationFn: () => refreshStock(stockId),
+    meta: { successMessage: 'Metrics refreshed' },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stock', stockId] });
       queryClient.invalidateQueries({ queryKey: ['stocks-dashboard'] });
@@ -73,8 +75,7 @@ export default function StockDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[0.9fr_1.1fr] gap-6">
-        <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           <div className="stocks-panel">
             <p className="stocks-eyebrow">Effective Metrics</p>
             <h2 className="stocks-panel-title">Trading Tape</h2>
@@ -127,34 +128,35 @@ export default function StockDetail() {
               <div className="stocks-metric-tile"><span>Gross Profit</span><strong>{formatCompactMetric(stock.effectiveMetrics.grossProfitTtm)}</strong></div>
             </div>
           </div>
+      </div>
 
-          <div className="stocks-panel">
-            <p className="stocks-eyebrow">Version History</p>
-            <h2 className="stocks-panel-title">Save Timeline</h2>
-            <div className="space-y-3 mt-5">
-              {stock.history.map((version) => (
-                <div key={version.id} className="stocks-history-item">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-medium text-[var(--stocks-text-strong)]">{version.source}</p>
-                      <p className="text-xs text-[var(--stocks-text-muted)]">{new Date(version.createdAt).toLocaleString()}</p>
-                    </div>
-                    <span className="stocks-badge">{version.payload.trackingMode}</span>
+      <StockEditor
+        stock={stock}
+        saving={updateMutation.isPending}
+        refreshing={refreshMutation.isPending}
+        onSave={(payload) => updateMutation.mutate(payload)}
+        onRefresh={async () => { await refreshMutation.mutateAsync(); }}
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="stocks-panel">
+          <p className="stocks-eyebrow">Version History</p>
+          <h2 className="stocks-panel-title">Save Timeline</h2>
+          <div className="space-y-3 mt-5">
+            {stock.history.map((version) => (
+              <div key={version.id} className="stocks-history-item">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-[var(--stocks-text-strong)]">{version.source}</p>
+                    <p className="text-xs text-[var(--stocks-text-muted)]">{new Date(version.createdAt).toLocaleString()}</p>
                   </div>
-                  <p className="text-sm text-[var(--stocks-text-muted)] mt-2 line-clamp-2">{version.payload.thesis || 'No thesis captured in this version.'}</p>
+                  <span className="stocks-badge">{version.payload.trackingMode}</span>
                 </div>
-              ))}
-            </div>
+                <p className="text-sm text-[var(--stocks-text-muted)] mt-2 line-clamp-2">{version.payload.thesis || 'No thesis captured in this version.'}</p>
+              </div>
+            ))}
           </div>
         </div>
-
-        <StockEditor
-          stock={stock}
-          saving={updateMutation.isPending}
-          refreshing={refreshMutation.isPending}
-          onSave={(payload) => updateMutation.mutate(payload)}
-          onRefresh={async () => { await refreshMutation.mutateAsync(); }}
-        />
       </div>
     </div>
   );

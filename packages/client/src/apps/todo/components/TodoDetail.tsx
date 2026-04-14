@@ -36,6 +36,7 @@ export default function TodoDetail({ todoId, groups, onUpdate, onDelete, onClose
 
   const createSubtaskMutation = useMutation({
     mutationFn: (title: string) => createTodo({ groupId: todoDetail!.groupId, title, parentId: todoId }),
+    meta: { successMessage: 'Subtask created' },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todo', todoId] });
       queryClient.invalidateQueries({ queryKey: ['todos'] });
@@ -44,6 +45,7 @@ export default function TodoDetail({ todoId, groups, onUpdate, onDelete, onClose
 
   const deleteSubtaskMutation = useMutation({
     mutationFn: (id: string) => deleteTodoApi(id),
+    meta: { successMessage: 'Subtask deleted' },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todo', todoId] });
       queryClient.invalidateQueries({ queryKey: ['todos'] });

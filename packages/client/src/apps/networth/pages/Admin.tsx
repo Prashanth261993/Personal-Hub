@@ -32,6 +32,7 @@ function MembersSection() {
 
   const mutation = useMutation({
     mutationFn: updateMembers,
+    meta: { successMessage: 'Family members saved' },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['members'] });
       setDirty(false);
@@ -144,6 +145,7 @@ function CategoriesSection() {
 
   const mutation = useMutation({
     mutationFn: updateCategories,
+    meta: { successMessage: 'Categories saved' },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       setDirty(false);

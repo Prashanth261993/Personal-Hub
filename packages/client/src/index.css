@@ -484,6 +484,64 @@
   color: var(--stocks-text) !important;
 }
 
+/* Enlarged journal variant */
+.stocks-journal-panel {
+  grid-column: 1 / -1;
+}
+
+.stocks-editor-large .tiptap-wrapper {
+  border-radius: 18px;
+  border: 1px solid var(--stocks-border);
+  background: var(--stocks-surface-strong);
+  overflow: hidden;
+}
+
+.stocks-editor-large .tiptap-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--stocks-surface-strong) !important;
+  border-color: var(--stocks-border) !important;
+  padding: 8px 12px;
+}
+
+.stocks-editor-large .tiptap-toolbar .tiptap-divider {
+  background: var(--stocks-border) !important;
+}
+
+.stocks-editor-large .ProseMirror {
+  min-height: 400px;
+  padding: 20px 24px;
+  color: var(--stocks-text-strong);
+}
+
+.stocks-editor-large .ProseMirror p.is-editor-empty:first-child::before {
+  color: var(--stocks-text-muted);
+}
+
+/* Image styles inside editor */
+.stocks-editor img,
+.tiptap-wrapper .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--stocks-border);
+  margin: 12px 0;
+}
+
+/* Link styles inside editor */
+.stocks-editor a,
+.tiptap-wrapper .ProseMirror a {
+  color: var(--stocks-accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.stocks-editor a:hover,
+.tiptap-wrapper .ProseMirror a:hover {
+  opacity: 0.8;
+}
+
 .stocks-mini-meta {
   display: flex;
   flex-direction: column;

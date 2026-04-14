@@ -17,3 +17,14 @@
 {"level":"info","message":"Starting Alpha Vantage MCP server...","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:25:54.068Z"}
 {"level":"info","message":"Alpha Vantage MCP server running with 19 tools available","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:25:54.070Z"}
 {"level":"info","message":"MCP Server fully operational and staying alive","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:25:54.070Z"}
+{"level":"info","message":"Alpha Vantage MCP Server initialized","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:26:35.018Z"}
+{"level":"info","message":"Starting Alpha Vantage MCP server...","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:26:35.021Z"}
+{"level":"info","message":"Alpha Vantage MCP server running with 19 tools available","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:26:35.023Z"}
+{"level":"info","message":"MCP Server fully operational and staying alive","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:26:35.023Z"}
+{"level":"info","message":"Tool call received: av_company_overview","service":"alpha-vantage-mcp","symbol":"MSFT","timestamp":"2026-04-14T21:26:37.273Z"}
+{"level":"info","message":"Executing intelligence tool: av_company_overview","service":"alpha-vantage-mcp","symbol":"MSFT","timestamp":"2026-04-14T21:26:37.274Z"}
+{"level":"info","message":"Tool call completed: av_company_overview","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:26:37.552Z"}
+{"level":"info","message":"Tool call received: av_company_overview","service":"alpha-vantage-mcp","symbol":"GOOGL","timestamp":"2026-04-14T21:26:37.555Z"}
+{"level":"info","message":"Executing intelligence tool: av_company_overview","service":"alpha-vantage-mcp","symbol":"GOOGL","timestamp":"2026-04-14T21:26:37.556Z"}
+{"level":"info","message":"Rate limit reached, waiting 12000ms for next token","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:26:37.556Z"}
+{"level":"info","message":"Tool call completed: av_company_overview","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:26:49.735Z"}

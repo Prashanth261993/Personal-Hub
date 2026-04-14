@@ -51,6 +51,7 @@ export default function Calendar() {
 
   const createTodoMutation = useMutation({
     mutationFn: createTodo,
+    meta: { successMessage: 'Task created' },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['todo-calendar'] });
       queryClient.invalidateQueries({ queryKey: ['todos'] });
@@ -71,6 +72,7 @@ export default function Calendar() {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteTodo(id),
+    meta: { successMessage: 'Task deleted' },
     onSuccess: () => {
       setSelectedTodoId(null);
       invalidateAll();

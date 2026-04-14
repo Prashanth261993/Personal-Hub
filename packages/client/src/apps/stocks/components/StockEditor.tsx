@@ -152,7 +152,8 @@ export default function StockEditor({ stock, saving = false, refreshing = false,
   };
 
   return (
-    <form onSubmit={handleSubmit} className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-6">
       <div className="stocks-panel space-y-5">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -276,18 +277,6 @@ export default function StockEditor({ stock, saving = false, refreshing = false,
           <span>Investment Thesis</span>
           <textarea value={form.thesis} onChange={(e) => setField('thesis', e.target.value)} rows={4} placeholder="Summarize the edge, catalyst, and risk in plain language." />
         </label>
-
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <p className="stocks-eyebrow">Long-form Notes</p>
-              <h3 className="stocks-panel-title">Research Journal</h3>
-            </div>
-          </div>
-          <div className="stocks-editor">
-            <TiptapEditor content={form.notesHtml} onChange={(value) => setField('notesHtml', value)} placeholder="Capture earnings notes, bear case, valuation anchors, and catalysts..." />
-          </div>
-        </div>
       </div>
 
       <div className="space-y-6">
@@ -337,6 +326,21 @@ export default function StockEditor({ stock, saving = false, refreshing = false,
               <input value={form.manualEpsGrowth} onChange={(e) => setField('manualEpsGrowth', e.target.value)} placeholder="14.2" inputMode="decimal" />
             </label>
           </div>
+        </div>
+      </div>
+      </div>
+
+      {/* Full-width Research Journal */}
+      <div className="stocks-panel stocks-journal-panel">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="stocks-eyebrow">Long-form Notes</p>
+            <h2 className="stocks-panel-title">Research Journal</h2>
+          </div>
+          <p className="text-xs text-[var(--stocks-text-muted)]">Paste or drag images directly into the editor</p>
+        </div>
+        <div className="stocks-editor stocks-editor-large">
+          <TiptapEditor content={form.notesHtml} onChange={(value) => setField('notesHtml', value)} placeholder="Capture earnings notes, bear case, valuation anchors, and catalysts. Paste charts, screenshots, or annotated images..." />
         </div>
       </div>
     </form>

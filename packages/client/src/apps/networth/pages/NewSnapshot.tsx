@@ -83,6 +83,7 @@ export default function NewSnapshot() {
 
   const mutation = useMutation({
     mutationFn: createSnapshot,
+    meta: { successMessage: 'Snapshot created' },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['snapshots'] });
       queryClient.invalidateQueries({ queryKey: ['trends'] });

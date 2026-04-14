@@ -183,11 +183,13 @@ export default function Dashboard() {
 
   const createPresetMutation = useMutation({
     mutationFn: createStockPreset,
+    meta: { successMessage: 'Preset saved' },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['stock-presets'] }),
   });
 
   const deletePresetMutation = useMutation({
     mutationFn: deleteStockPreset,
+    meta: { successMessage: 'Preset deleted' },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['stock-presets'] }),
   });
 

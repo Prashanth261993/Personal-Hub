@@ -13,6 +13,7 @@ export default function NewStock() {
 
   const createMutation = useMutation({
     mutationFn: createStock,
+    meta: { successMessage: 'Stock created' },
     onSuccess: (stock) => {
       queryClient.invalidateQueries({ queryKey: ['stocks-dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['stocks-summary'] });
