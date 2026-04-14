@@ -8,6 +8,7 @@ A personal productivity platform with a modular app architecture. React SPA fron
 |-----|-------|-------------|--------|
 | **Net Worth** | `/networth` | Track assets and liabilities for each family member, view trends, and get insights | Active |
 | **Planning / Todo** | `/todo` | Ultra-modern task management with Kanban board, calendar view, recurring tasks, subtasks, rich-text notes, and drag-and-drop | Active |
+| **Stocks** | `/stocks` | Track watchlist ideas and holdings with valuation metrics, Alpha Vantage refresh, rich research notes, and version history | Active |
 
 ## Architecture
 
@@ -26,6 +27,7 @@ PersonalHub/
 │   │   └── src/
 │   │       ├── apps/
 │   │       │   ├── networth/    # Net Worth routes
+│   │       │   ├── stocks/      # Stocks routes, Alpha Vantage integration, version history
 │   │       │   └── todo/        # Todo routes (groups, todos, stats)
 │   │       ├── db/              # Drizzle ORM + SQLite
 │   │       └── lib/             # Shared server helpers
@@ -33,6 +35,7 @@ PersonalHub/
 │       └── src/
 │           ├── apps/
 │           │   ├── networth/    # Net Worth pages & API
+│           │   ├── stocks/      # Stocks pages, API & editor components
 │           │   └── todo/        # Todo pages, API & 16 components
 │           ├── components/      # Platform-level components (Layout, etc.)
 │           ├── lib/             # Shared client helpers
@@ -63,6 +66,8 @@ npm install
 ```
 
 ### 2. Start the app
+
+If you want manual Alpha Vantage refreshes in the Stocks app, create a local `.env` from `.env.example` and set `ALPHA_VANTAGE_API_KEY` before starting the server.
 
 ```bash
 npm run dev
@@ -123,9 +128,23 @@ Navigate to **http://localhost:5173** — the Home page shows all available apps
 | PUT | `/api/todo/todos/:id/move` | Move todo to a different group |
 | PUT | `/api/todo/todos/:id/complete` | Mark complete (recurring: logs completion, stays open) |
 | PUT | `/api/todo/todos/:id/reopen` | Reopen a completed todo |
+| POST | `/api/todo/todos/:id/detach` | Detach one recurring calendar instance into a standalone todo on a new date |
 | PUT | `/api/todo/todos/reorder` | Batch reorder todos |
 | GET | `/api/todo/stats` | Aggregated stats (open/completed counts, streaks, daily completions) |
 | GET | `/api/todo/stats/calendar?month=YYYY-MM` | Calendar data with expanded recurring instances |
+
+### Stocks (`/api/stocks`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/stocks` | Dashboard summary plus all active tracked stocks |
+| GET | `/api/stocks/summary` | Lightweight home-card summary for tracked names and upside |
+| POST | `/api/stocks` | Create a stock record and initial version entry |
+| GET | `/api/stocks/:id` | Get stock detail with effective metrics and version history |
+| PUT | `/api/stocks/:id` | Update a stock record and append a version |
+| DELETE | `/api/stocks/:id` | Delete a stock, its metrics cache, and version history |
+| GET | `/api/stocks/:id/history` | List saved versions for a stock |
+| POST | `/api/stocks/:id/refresh` | Manually refresh Alpha Vantage metrics for one stock |
 
 ---
 
@@ -141,7 +160,10 @@ Navigate to **http://localhost:5173** — the Home page shows all available apps
 | `/networth/snapshots/:id` | Edit Snapshot | View and modify a snapshot |
 | `/networth/insights` | Insights | Trends, projections, goal tracking |
 | `/todo` | Todo Dashboard | Quick add, today's focus, overdue/upcoming, stats, and Kanban board |
-| `/todo/calendar` | Todo Calendar | Monthly calendar grid with todo chips per day |
+| `/todo/calendar` | Todo Calendar | Monthly calendar grid with todo chips per day and drag-to-reschedule support |
+| `/stocks` | Stocks Dashboard | Finance-style dashboard for tracked stocks with upside and valuation metrics |
+| `/stocks/new` | New Stock | Create a stock record with thesis, notes, and manual overrides |
+| `/stocks/:id` | Stock Detail | Edit stock details, refresh Alpha Vantage data, and browse version history |
 | `/help` | Help | In-app guide |
 
 ---
@@ -173,6 +195,15 @@ Navigate to **http://localhost:5173** — the Home page shows all available apps
 ## Configuration Files
 
 Config files live in `config/<appName>/` and are version-controlled.
+
+### .env
+
+Server environment variables are loaded from the repo root `.env` first, then `packages/server/.env` as a fallback.
+
+```env
+PORT=3001
+ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key_here
+```
 
 ### config/networth/family-members.json
 
@@ -215,9 +246,9 @@ The Planning / Todo app is a feature-rich task manager built with an ultra-moder
 
 - **Dashboard** — 5 widgets: Quick Add bar, Today's Focus, Overdue & Upcoming, Completion Stats (with animated counters and streak tracking), and a full Kanban board
 - **Kanban Board** — groups as columns, drag-and-drop todos between groups via @dnd-kit, inline expand to edit
-- **Calendar** — custom-built month grid with date-fns, todo chips per day, month navigation with slide animation
+- **Calendar** — custom-built month grid with date-fns, todo chips per day, month navigation with slide animation, and drag-and-drop rescheduling between days
 - **Priorities** — 3 levels (High/red, Medium/amber, Low/green) with color-coded badges
-- **Recurring Tasks** — daily, weekly, monthly, yearly with custom intervals and weekday selection. Recurring todos stay open; completions are tracked per-date
+- **Recurring Tasks** — daily, weekly, monthly, yearly with custom intervals and weekday selection. Recurring todos stay open; completions are tracked per-date. Dragging a recurring calendar instance to a new day detaches that occurrence into a standalone todo and records the original date as a recurrence exception
 - **Subtasks** — todos with a `parentId` (same table, max 1 level deep)
 - **Rich Notes** — Tiptap WYSIWYG editor with bold, italic, bullet list, task checklist, and code blocks
 - **Groups** — dynamic groups with custom name, color, and Lucide icon (auto-suggested from name keywords)
@@ -227,11 +258,30 @@ The Planning / Todo app is a feature-rich task manager built with an ultra-moder
 
 | Package | Purpose |
 |---------|--------|
-| `@dnd-kit/core` + `@dnd-kit/sortable` | Drag-and-drop for Kanban board |
+| `@dnd-kit/core` + `@dnd-kit/sortable` | Drag-and-drop for Kanban board and calendar rescheduling |
 | `framer-motion` | Layout animations, presence, page transitions |
 | `@react-spring/web` | Spring-physics animated counters |
 | `@tiptap/react` + extensions | Rich-text WYSIWYG editor |
 | `date-fns` | Date manipulation for calendar and recurrence |
+
+---
+
+## Stocks App
+
+The Stocks app is a finance-oriented research workspace for both watchlist ideas and held positions:
+
+- **Tracking Modes** — each stock can be `watchlist`, `holding`, or `both`
+- **Version History** — every save appends a full stock version snapshot so thesis and override changes remain auditable
+- **Manual API Refresh** — Alpha Vantage refreshes are explicit, per-stock actions instead of background polling
+- **Valuation Metrics** — dashboard and detail pages surface current price, analyst target, P/E, P/B, P/S, EPS growth, and derived upside percentage
+- **Rich Research Notes** — Tiptap powers a large-form editor for thesis updates, earnings notes, and catalysts
+- **Dark Finance UI** — the Stocks experience has app-scoped dark/light theming without re-theming the rest of the platform
+
+### Stocks Data Model
+
+- `stocks` stores the latest editable stock state
+- `stock_metrics_cache` stores the latest Alpha Vantage-enriched metrics and refresh status
+- `stock_versions` stores append-only historical snapshots for each save or API-driven metadata update
 
 ---
 

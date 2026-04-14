@@ -13,6 +13,8 @@ import {
   ChevronDown,
   ListTodo,
   CalendarDays,
+  CirclePlus,
+  LineChart,
 } from 'lucide-react';
 
 interface NavApp {
@@ -44,6 +46,16 @@ const apps: NavApp[] = [
     children: [
       { to: '/todo', label: 'Dashboard', icon: LayoutDashboard },
       { to: '/todo/calendar', label: 'Calendar', icon: CalendarDays },
+    ],
+  },
+  {
+    id: 'stocks',
+    label: 'Stocks',
+    icon: LineChart,
+    basePath: '/stocks',
+    children: [
+      { to: '/stocks', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/stocks/new', label: 'Add Stock', icon: CirclePlus },
     ],
   },
 ];

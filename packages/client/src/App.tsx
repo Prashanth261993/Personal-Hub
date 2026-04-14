@@ -10,6 +10,9 @@ import Insights from './apps/networth/pages/Insights';
 import Help from './apps/networth/pages/Help';
 import TodoDashboard from './apps/todo/pages/Dashboard';
 import TodoCalendar from './apps/todo/pages/Calendar';
+import StocksDashboard from './apps/stocks/pages/Dashboard';
+import NewStock from './apps/stocks/pages/NewStock';
+import StockDetail from './apps/stocks/pages/StockDetail';
 
 export default function App() {
   return (
@@ -28,6 +31,11 @@ export default function App() {
         {/* Todo App */}
         <Route path="/todo" element={<TodoDashboard />} />
         <Route path="/todo/calendar" element={<TodoCalendar />} />
+
+        {/* Stocks App */}
+        <Route path="/stocks" element={<StocksDashboard />} />
+        <Route path="/stocks/new" element={<NewStock />} />
+        <Route path="/stocks/:id" element={<StockDetail />} />
 
         {/* Platform */}
         <Route path="/help" element={<Help />} />

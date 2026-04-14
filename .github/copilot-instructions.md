@@ -2,7 +2,7 @@
 
 ## Overview
 
-Personal productivity platform with modular sub-applications. React SPA frontend + Express/SQLite backend in an npm workspaces monorepo. Single-user, local-first — no authentication. Ships with a **Net Worth Tracker** and an **ultra-modern Todo / Planning** app. More apps (Stock Portfolio, etc.) can be added.
+Personal productivity platform with modular sub-applications. React SPA frontend + Express/SQLite backend in an npm workspaces monorepo. Single-user, local-first — no authentication. Ships with a **Net Worth Tracker**, a **Stocks** research workspace, and an **ultra-modern Todo / Planning** app.
 
 ## Project Structure
 
@@ -21,6 +21,7 @@ PersonalHub/
 │   │   └── src/
 │   │       ├── apps/
 │   │       │   ├── networth/ # Net Worth route aggregator + routes/
+│   │       │   ├── stocks/   # Stocks dashboard/detail routes + Alpha Vantage helper
 │   │       │   └── todo/     # Todo routes (groups, todos, stats)
 │   │       ├── db/           # Drizzle ORM + SQLite setup
 │   │       └── lib/          # Shared server helpers (config.ts)
@@ -28,6 +29,7 @@ PersonalHub/
 │       └── src/
 │           ├── apps/
 │           │   ├── networth/ # Net Worth pages/ + api.ts
+│           │   ├── stocks/   # Stocks pages/, api.ts, theme hook + editor
 │           │   └── todo/     # Todo pages/, api.ts + 16 components/
 │           ├── components/   # Platform-level (Layout, ConfirmModal, IconLookup)
 │           ├── lib/          # Shared client API (axios instance)
@@ -42,6 +44,12 @@ PersonalHub/
 - `npm run dev` — starts both server (tsx watch) and client (Vite) via concurrently
 - `npm run build` — builds all packages in dependency order
 - `npm run db:studio` — opens Drizzle Studio to browse the SQLite database
+- Copy `.env.example` to `.env` and set `ALPHA_VANTAGE_API_KEY` to enable manual stock metric refreshes. Server startup loads the repo root `.env` first, then `packages/server/.env`.
+
+## Documentation Maintenance
+
+- When updating `README.md` or `.github/copilot-instructions.md`, inspect the relevant git diff first and document only the contributor-relevant delta.
+- Prefer an incremental baseline file such as `.github/doc-sync-state.json` so documentation reviews can compare `lastReviewedCommit..HEAD` instead of rescanning the full repository.
 
 ## Architecture Decisions
 
@@ -71,6 +79,7 @@ PersonalHub/
 - **IDs** are UUIDs generated with `uuid.v4()`.
 - **Inline migrations** run on every server startup via `runMigrations()` — all `CREATE TABLE IF NOT EXISTS` statements in `src/db/migrate.ts`.
 - **SQLite pragmas**: WAL journal mode, foreign keys ON.
+- **Environment loading**: Server startup loads the repo root `.env` first and `packages/server/.env` second via `dotenv`.
 
 ### DB Schema (Net Worth)
 
@@ -94,17 +103,34 @@ recurring_completions:  id (TEXT PK), todo_id (FK→todos CASCADE), completion_d
 
 Indexes on `group_id`, `parent_id`, `status`, `due_date`. Unique index on `(todo_id, completion_date)`.
 
+### DB Schema (Stocks)
+
+```
+stocks:              id (TEXT PK), symbol (unique), company_name, exchange, sector, industry,
+                     tracking_mode ('watchlist'|'holding'|'both'), status ('active'|'archived'),
+                     thesis, notes_html, shares_milli, average_cost_basis, conviction,
+                     manual_* override fields, last_manual_update_at, last_synced_at, created_at, updated_at
+stock_metrics_cache: id (TEXT PK), stock_id (FK→stocks CASCADE, unique), source, refresh_state,
+                     current_price, analyst_target_price, pe_ratio, pb_ratio, ps_ratio,
+                     eps_growth, market_cap, beta, analyst_rating, fetched_at, error_message,
+                     created_at, updated_at
+stock_versions:      id (TEXT PK), stock_id (FK→stocks CASCADE), source ('manual'|'api-refresh'|'restore'),
+                     payload (JSON TEXT), created_at
+```
+
+Indexes on `symbol`, `tracking_mode`, `status`, `updated_at`, `stock_id`, and `created_at`.
+
 **Key design decisions:**
 - Subtasks are todos with `parentId` set (same table, max 1 level deep).
 - Recurring todos stay `status='open'`; each completion is logged in `recurring_completions`.
-- `recurrence` is a JSON-stringified `RecurrenceRule` (`{ frequency, interval, weekdays?, endDate? }`).
+- `recurrence` is a JSON-stringified `RecurrenceRule` (`{ frequency, interval, weekdays?, endDate?, exceptions? }`).
 - Groups are fully dynamic (SQLite, not JSON config) — users create/edit/delete from UI.
 - `sort_order` enables drag-and-drop reordering within groups.
 
 ## Client Patterns (packages/client)
 
 - **React 19 + Vite + Tailwind CSS v4** with `@theme` custom properties for colors (primary=indigo, success=green, danger=red, warning=amber).
-- **TanStack Query v5** for all data fetching. Query keys are arrays: `['snapshots']`, `['snapshot', id]`, `['trends']`, `['insights-summary']`, `['goals']`, `['members']`, `['categories']`, `['todo-groups']`, `['todos']`, `['todo', id]`, `['todo-stats']`, `['todo-calendar', month]`. Mutations invalidate related query keys on success.
+- **TanStack Query v5** for all data fetching. Query keys are arrays: `['snapshots']`, `['snapshot', id]`, `['trends']`, `['insights-summary']`, `['goals']`, `['members']`, `['categories']`, `['todo-groups']`, `['todos']`, `['todo', id]`, `['todo-stats']`, `['todo-calendar', month]`, `['stocks-dashboard']`, `['stocks-summary']`, `['stock', id]`. Mutations invalidate related query keys on success.
 - **App-scoped API layer**: Each app has its own `api.ts` at `src/apps/<appName>/api.ts` with an axios instance (`baseURL: '/api/<appName>'`). Platform-level shared API at `src/lib/api.ts` (`baseURL: '/api'`).
 - **React Router v7** — Layout as parent route with `<Outlet />`. App pages are nested under `/<appName>/*`. Platform pages (Home, Help) are at root level.
 - **Lucide React** for icons — imported as components. Dynamic icon lookup in `IconLookup.tsx` converts kebab-case names to PascalCase for `lucide-react`'s `icons` map.
@@ -113,10 +139,12 @@ Indexes on `group_id`, `parent_id`, `status`, `due_date`. Unique index on `(todo
 - **Card styling**: `bg-white rounded-xl border border-gray-200 p-6`.
 - **Button styling**: `bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors`.
 - **ConfirmModal**: Reusable confirmation dialog at `src/components/ConfirmModal.tsx` for all destructive actions (deletes).
+- **Frontend design guidance**: For substantial UI work or new app surfaces, consult `.github/skills/frontend-design/SKILL.md` and preserve app-local visual identity instead of flattening everything into the platform default.
 
 ### Todo App Client Stack
 
 - **@dnd-kit** (`@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`) for Kanban drag-and-drop between groups and reordering within groups. `DndContext` at board level, `useSortable` on each card, `useDroppable` on each column. `DragOverlay` for ghost card preview.
+- **Calendar drag-and-drop** also uses `@dnd-kit/core` so users can reschedule one-off todos by moving their due date between calendar days. Dragging a recurring instance detaches that occurrence into a standalone todo.
 - **Framer Motion** for layout animations (card enter/exit via `AnimatePresence`, inline expand via `motion.div`, page transitions, modal entrance, calendar month slide).
 - **React Spring** (`@react-spring/web`) for spring-physics animated counters in stats widgets and checkbox bounce.
 - **Tiptap** (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-placeholder`, `@tiptap/extension-task-list`, `@tiptap/extension-task-item`) for rich-text WYSIWYG notes on todos. Notion-like minimal toolbar.
@@ -141,10 +169,19 @@ Indexes on `group_id`, `parent_id`, `status`, `due_date`. Unique index on `(todo
 - **Groups** are dynamic (SQLite). Each group has a name, color (hex), icon (Lucide), and sort_order. Users create/edit/delete from the UI via a modal with auto-icon suggestion.
 - **Todos** belong to a group. They have priority (high/medium/low), status (open/completed), optional due date, optional recurrence rule, optional markdown description, and sort_order.
 - **Subtasks** are regular todos with `parentId` pointing to a parent todo. Max one level deep. They inherit the parent's group.
-- **Recurrence** uses `RecurrenceRule`: `{ frequency: 'daily'|'weekly'|'monthly'|'yearly', interval: number, weekdays?: number[], endDate?: string }`. Recurring todos always stay `status='open'`; completions go into `recurring_completions` table keyed by `(todoId, completionDate)`.
-- **Calendar expansion**: The `/api/todo/stats/calendar` endpoint expands recurring todos into per-date instances for a given month, merging with one-off todos.
+- **Recurrence** uses `RecurrenceRule`: `{ frequency: 'daily'|'weekly'|'monthly'|'yearly', interval: number, weekdays?: number[], endDate?: string, exceptions?: string[] }`. Recurring todos always stay `status='open'`; completions go into `recurring_completions` table keyed by `(todoId, completionDate)`.
+- **Calendar expansion**: The `/api/todo/stats/calendar` endpoint expands recurring todos into per-date instances for a given month, merging with one-off todos and skipping any dates listed in `recurrence.exceptions`.
+- **Recurring instance detach**: `POST /api/todo/todos/:id/detach` records the original date as a recurrence exception and creates a standalone todo on the new date when a recurring calendar instance is moved.
 - **Icon suggestion**: Client-side keyword→icon map (e.g., "work"→briefcase, "fitness"→dumbbell). The `IconSuggest` component auto-suggests as the user types a group name.
 - **Inline expand**: TodoDetail opens below the card (Todoist-style) using Framer Motion `AnimatePresence` height animation. It shows title edit, Tiptap notes, subtask list, priority/date/recurrence/group controls.
+
+### Stocks
+- **Tracking modes**: A stock can be a watchlist idea, a holding, or both.
+- **Version history**: Every save writes a full payload snapshot into `stock_versions`; the `stocks` table stores the latest editable state for fast reads.
+- **Alpha Vantage refresh**: Manual refresh only in v1. `POST /api/stocks/:id/refresh` updates `stock_metrics_cache` and may append an `api-refresh` version when metadata changes.
+- **Manual overrides**: Current price, target price, P/E, P/B, P/S, and EPS growth can be set manually and override cached API values in effective metrics.
+- **Notes editor**: Stocks reuse the Todo app's Tiptap editor for long-form research notes.
+- **Stocks dashboard**: `/stocks` shows active tracked names, derived upside percentage, refresh state, and position value. `/stocks/:id` combines metrics, version history, and the full editor.
 
 ## When Adding a New App
 
