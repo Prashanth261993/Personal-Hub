@@ -13,6 +13,7 @@ import TodoCalendar from './apps/todo/pages/Calendar';
 import StocksDashboard from './apps/stocks/pages/Dashboard';
 import NewStock from './apps/stocks/pages/NewStock';
 import StockDetail from './apps/stocks/pages/StockDetail';
+import StocksAgent from './apps/stocks/pages/Agent';
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
 
         {/* Stocks App */}
         <Route path="/stocks" element={<StocksDashboard />} />
+        <Route path="/stocks/agent" element={<StocksAgent />} />
         <Route path="/stocks/new" element={<NewStock />} />
         <Route path="/stocks/:id" element={<StockDetail />} />
 

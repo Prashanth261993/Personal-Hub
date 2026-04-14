@@ -486,6 +486,17 @@ export interface StockPresetsConfig {
   presets: StockPreset[];
 }
 
+// ── Stocks Agent Types ──
+
+export interface AgentMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface AgentChatRequest {
+  messages: AgentMessage[];
+}
+
 // ── Platform Types ──
 
 export interface AppDefinition {

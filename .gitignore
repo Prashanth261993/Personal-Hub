@@ -24,3 +24,7 @@ data/*.db-shm
 Thumbs.db
 .copilot-cli/
 .github/instructions/orchestrator-*.instructions.md
+
+# Playwright
+
+.playwright-mcp

@@ -487,7 +487,7 @@ export default function Dashboard() {
                             <button
                               type="button"
                               onClick={() => { setShowSaveForm(false); setSavePresetName(''); }}
-                              className="text-[var(--stocks-text-muted)] hover:text-[var(--stocks-text-primary)] transition-colors text-xs"
+                              className="text-[var(--stocks-text-muted)] hover:text-[var(--stocks-text-strong)] transition-colors text-xs"
                             >
                               ✕
                             </button>

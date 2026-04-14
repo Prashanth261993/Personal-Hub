@@ -15,6 +15,7 @@ import {
   CalendarDays,
   CirclePlus,
   LineChart,
+  Bot,
 } from 'lucide-react';
 
 interface NavApp {
@@ -56,6 +57,7 @@ const apps: NavApp[] = [
     children: [
       { to: '/stocks', label: 'Dashboard', icon: LayoutDashboard },
       { to: '/stocks/new', label: 'Add Stock', icon: CirclePlus },
+      { to: '/stocks/agent', label: 'Agent', icon: Bot },
     ],
   },
 ];

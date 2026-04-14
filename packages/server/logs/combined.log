@@ -1,0 +1,19 @@
+{"level":"info","message":"Alpha Vantage MCP Server initialized","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:05:59.069Z"}
+{"level":"info","message":"Starting Alpha Vantage MCP server...","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:05:59.071Z"}
+{"level":"info","message":"Alpha Vantage MCP server running with 19 tools available","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:05:59.073Z"}
+{"level":"info","message":"MCP Server fully operational and staying alive","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:05:59.073Z"}
+{"level":"info","message":"Alpha Vantage MCP Server initialized","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:13:28.731Z"}
+{"level":"info","message":"Starting Alpha Vantage MCP server...","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:13:28.734Z"}
+{"level":"info","message":"Alpha Vantage MCP server running with 19 tools available","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:13:28.735Z"}
+{"level":"info","message":"MCP Server fully operational and staying alive","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:13:28.736Z"}
+{"level":"info","message":"Alpha Vantage MCP Server initialized","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:17:21.399Z"}
+{"level":"info","message":"Starting Alpha Vantage MCP server...","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:17:21.402Z"}
+{"level":"info","message":"Alpha Vantage MCP server running with 19 tools available","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:17:21.404Z"}
+{"level":"info","message":"MCP Server fully operational and staying alive","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:17:21.404Z"}
+{"level":"info","message":"Tool call received: av_company_overview","service":"alpha-vantage-mcp","symbol":"AMZN","timestamp":"2026-04-14T21:17:23.407Z"}
+{"level":"info","message":"Executing intelligence tool: av_company_overview","service":"alpha-vantage-mcp","symbol":"AMZN","timestamp":"2026-04-14T21:17:23.408Z"}
+{"level":"info","message":"Tool call completed: av_company_overview","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:17:23.759Z"}
+{"level":"info","message":"Alpha Vantage MCP Server initialized","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:25:54.065Z"}
+{"level":"info","message":"Starting Alpha Vantage MCP server...","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:25:54.068Z"}
+{"level":"info","message":"Alpha Vantage MCP server running with 19 tools available","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:25:54.070Z"}
+{"level":"info","message":"MCP Server fully operational and staying alive","service":"alpha-vantage-mcp","timestamp":"2026-04-14T21:25:54.070Z"}
