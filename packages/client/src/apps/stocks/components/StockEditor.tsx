@@ -221,17 +221,54 @@ export default function StockEditor({ stock, saving = false, refreshing = false,
               <p className="stocks-eyebrow">API Preview</p>
               <h3 className="stocks-panel-title">Alpha Vantage Snapshot</h3>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <div className="stocks-metric-tile"><span>Current</span><strong>{lookupPreview.metrics.currentPrice !== null ? formatCurrency(lookupPreview.metrics.currentPrice) : '—'}</strong></div>
-              <div className="stocks-metric-tile"><span>Target</span><strong>{lookupPreview.metrics.analystTargetPrice !== null ? formatCurrency(lookupPreview.metrics.analystTargetPrice) : '—'}</strong></div>
-              <div className="stocks-metric-tile"><span>Change %</span><strong>{lookupPreview.metrics.priceChangePercent !== null ? formatPercent(lookupPreview.metrics.priceChangePercent) : '—'}</strong></div>
-              <div className="stocks-metric-tile"><span>P/E</span><strong>{lookupPreview.metrics.peRatio !== null ? lookupPreview.metrics.peRatio.toFixed(1) : '—'}</strong></div>
-              <div className="stocks-metric-tile"><span>P/B</span><strong>{lookupPreview.metrics.pbRatio !== null ? lookupPreview.metrics.pbRatio.toFixed(1) : '—'}</strong></div>
-              <div className="stocks-metric-tile"><span>P/S</span><strong>{lookupPreview.metrics.psRatio !== null ? lookupPreview.metrics.psRatio.toFixed(1) : '—'}</strong></div>
-              <div className="stocks-metric-tile"><span>EPS Growth</span><strong>{lookupPreview.metrics.epsGrowth !== null ? formatPercent(lookupPreview.metrics.epsGrowth) : '—'}</strong></div>
-              <div className="stocks-metric-tile"><span>Revenue Growth</span><strong>{lookupPreview.metrics.quarterlyRevenueGrowthYoy !== null ? formatPercent(lookupPreview.metrics.quarterlyRevenueGrowthYoy) : '—'}</strong></div>
-              <div className="stocks-metric-tile"><span>52W Range</span><strong>{lookupPreview.metrics.fiftyTwoWeekLow !== null && lookupPreview.metrics.fiftyTwoWeekHigh !== null ? `${formatCurrency(lookupPreview.metrics.fiftyTwoWeekLow)} - ${formatCurrency(lookupPreview.metrics.fiftyTwoWeekHigh)}` : '—'}</strong></div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--stocks-text-muted)] mb-2">Trading Tape</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="stocks-metric-tile"><span>Current</span><strong>{lookupPreview.metrics.currentPrice !== null ? formatCurrency(lookupPreview.metrics.currentPrice) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>Open</span><strong>{lookupPreview.metrics.openPrice !== null ? formatCurrency(lookupPreview.metrics.openPrice) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>Day High</span><strong>{lookupPreview.metrics.highPrice !== null ? formatCurrency(lookupPreview.metrics.highPrice) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>Day Low</span><strong>{lookupPreview.metrics.lowPrice !== null ? formatCurrency(lookupPreview.metrics.lowPrice) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>Prev Close</span><strong>{lookupPreview.metrics.previousClosePrice !== null ? formatCurrency(lookupPreview.metrics.previousClosePrice) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>Change %</span><strong>{lookupPreview.metrics.priceChangePercent !== null ? formatPercent(lookupPreview.metrics.priceChangePercent) : '—'}</strong></div>
+              </div>
             </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--stocks-text-muted)] mb-2">Valuation &amp; Range</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="stocks-metric-tile"><span>Target</span><strong>{lookupPreview.metrics.analystTargetPrice !== null ? formatCurrency(lookupPreview.metrics.analystTargetPrice) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>P/E</span><strong>{lookupPreview.metrics.peRatio !== null ? lookupPreview.metrics.peRatio.toFixed(1) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>P/B</span><strong>{lookupPreview.metrics.pbRatio !== null ? lookupPreview.metrics.pbRatio.toFixed(1) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>P/S</span><strong>{lookupPreview.metrics.psRatio !== null ? lookupPreview.metrics.psRatio.toFixed(1) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>Beta</span><strong>{lookupPreview.metrics.beta !== null ? lookupPreview.metrics.beta.toFixed(2) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>Market Cap</span><strong>{lookupPreview.metrics.marketCap !== null ? new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(lookupPreview.metrics.marketCap) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>52W High</span><strong>{lookupPreview.metrics.fiftyTwoWeekHigh !== null ? formatCurrency(lookupPreview.metrics.fiftyTwoWeekHigh) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>52W Low</span><strong>{lookupPreview.metrics.fiftyTwoWeekLow !== null ? formatCurrency(lookupPreview.metrics.fiftyTwoWeekLow) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>50D Avg</span><strong>{lookupPreview.metrics.fiftyDayMovingAverage !== null ? formatCurrency(lookupPreview.metrics.fiftyDayMovingAverage) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>200D Avg</span><strong>{lookupPreview.metrics.twoHundredDayMovingAverage !== null ? formatCurrency(lookupPreview.metrics.twoHundredDayMovingAverage) : '—'}</strong></div>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--stocks-text-muted)] mb-2">Business Quality</p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="stocks-metric-tile"><span>EPS Growth</span><strong>{lookupPreview.metrics.epsGrowth !== null ? formatPercent(lookupPreview.metrics.epsGrowth) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>Revenue Growth</span><strong>{lookupPreview.metrics.quarterlyRevenueGrowthYoy !== null ? formatPercent(lookupPreview.metrics.quarterlyRevenueGrowthYoy) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>Earnings Growth</span><strong>{lookupPreview.metrics.quarterlyEarningsGrowthYoy !== null ? formatPercent(lookupPreview.metrics.quarterlyEarningsGrowthYoy) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>Dividend Yield</span><strong>{lookupPreview.metrics.dividendYield !== null ? formatPercent(lookupPreview.metrics.dividendYield) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>Profit Margin</span><strong>{lookupPreview.metrics.profitMargin !== null ? formatPercent(lookupPreview.metrics.profitMargin) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>Op Margin</span><strong>{lookupPreview.metrics.operatingMarginTtm !== null ? formatPercent(lookupPreview.metrics.operatingMarginTtm) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>ROA</span><strong>{lookupPreview.metrics.returnOnAssetsTtm !== null ? formatPercent(lookupPreview.metrics.returnOnAssetsTtm) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>ROE</span><strong>{lookupPreview.metrics.returnOnEquityTtm !== null ? formatPercent(lookupPreview.metrics.returnOnEquityTtm) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>Revenue TTM</span><strong>{lookupPreview.metrics.revenueTtm !== null ? new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(lookupPreview.metrics.revenueTtm) : '—'}</strong></div>
+                <div className="stocks-metric-tile"><span>Gross Profit</span><strong>{lookupPreview.metrics.grossProfitTtm !== null ? new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(lookupPreview.metrics.grossProfitTtm) : '—'}</strong></div>
+              </div>
+            </div>
+
+            {lookupPreview.analystRating && (
+              <div className="stocks-metric-tile inline-flex"><span>Analyst Rating</span><strong>{lookupPreview.analystRating}</strong></div>
+            )}
           </div>
         )}
 

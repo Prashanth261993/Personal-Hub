@@ -5,6 +5,7 @@ import type {
   Stock,
   StockDetail,
   StockLookupResponse,
+  StockPreset,
   StockVersion,
   StocksDashboardResponse,
   StocksHomeSummary,
@@ -22,3 +23,7 @@ export const createStock = (data: CreateStockRequest) => api.post<Stock>('/', da
 export const updateStock = (id: string, data: UpdateStockRequest) => api.put<Stock>(`/${id}`, data).then((r) => r.data);
 export const deleteStock = (id: string) => api.delete(`/${id}`).then((r) => r.data);
 export const refreshStock = (id: string) => api.post<RefreshStockResponse>(`/${id}/refresh`).then((r) => r.data);
+export const fetchStockPresets = () => api.get<StockPreset[]>('/presets').then((r) => r.data);
+export const createStockPreset = (data: Omit<StockPreset, 'id' | 'createdAt' | 'builtIn'>) => api.post<StockPreset>('/presets', data).then((r) => r.data);
+export const updateStockPreset = (id: string, data: Partial<StockPreset>) => api.put<StockPreset>(`/presets/${id}`, data).then((r) => r.data);
+export const deleteStockPreset = (id: string) => api.delete(`/presets/${id}`).then((r) => r.data);

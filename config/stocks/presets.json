@@ -1,0 +1,68 @@
+{
+  "presets": [
+    {
+      "id": "preset-buy-signal",
+      "label": "Buy Signal",
+      "description": "Upside > 15 %, EPS growth > 0, P/E < 30",
+      "builtIn": true,
+      "filters": {
+        "upsidePercent": { "min": "15", "max": "" },
+        "epsGrowth": { "min": "0", "max": "" },
+        "peRatio": { "min": "", "max": "30" }
+      },
+      "createdAt": "2026-04-14T00:00:00.000Z"
+    },
+    {
+      "id": "preset-sell-signal",
+      "label": "Sell Signal",
+      "description": "Overvalued — upside < 0 %",
+      "builtIn": true,
+      "filters": {
+        "upsidePercent": { "min": "", "max": "0" }
+      },
+      "createdAt": "2026-04-14T00:00:00.000Z"
+    },
+    {
+      "id": "preset-undervalued",
+      "label": "Undervalued",
+      "description": "P/E < 15, P/B < 2",
+      "builtIn": true,
+      "filters": {
+        "peRatio": { "min": "", "max": "15" },
+        "pbRatio": { "min": "", "max": "2" }
+      },
+      "createdAt": "2026-04-14T00:00:00.000Z"
+    },
+    {
+      "id": "preset-growth",
+      "label": "Growth",
+      "description": "EPS growth > 20 %",
+      "builtIn": true,
+      "filters": {
+        "epsGrowth": { "min": "20", "max": "" }
+      },
+      "createdAt": "2026-04-14T00:00:00.000Z"
+    },
+    {
+      "id": "preset-income",
+      "label": "Income",
+      "description": "Dividend yield > 2 %",
+      "builtIn": true,
+      "filters": {
+        "dividendYield": { "min": "2", "max": "" }
+      },
+      "createdAt": "2026-04-14T00:00:00.000Z"
+    },
+    {
+      "id": "preset-defensive",
+      "label": "Defensive",
+      "description": "Beta < 0.8, profit margin > 15 %",
+      "builtIn": true,
+      "filters": {
+        "beta": { "min": "", "max": "0.8" },
+        "profitMargin": { "min": "15", "max": "" }
+      },
+      "createdAt": "2026-04-14T00:00:00.000Z"
+    }
+  ]
+}
