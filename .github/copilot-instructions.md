@@ -21,7 +21,7 @@ PersonalHub/
 │   │   └── src/
 │   │       ├── apps/
 │   │       │   ├── networth/ # Net Worth route aggregator + routes/
-│   │       │   ├── stocks/   # Stocks dashboard/detail routes + Alpha Vantage helper
+│   │       │   ├── stocks/   # Stocks dashboard/detail routes, Alpha Vantage helper, MCP agent, presets
 │   │       │   └── todo/     # Todo routes (groups, todos, stats)
 │   │       ├── db/           # Drizzle ORM + SQLite setup
 │   │       └── lib/          # Shared server helpers (config.ts)
@@ -29,7 +29,7 @@ PersonalHub/
 │       └── src/
 │           ├── apps/
 │           │   ├── networth/ # Net Worth pages/ + api.ts
-│           │   ├── stocks/   # Stocks pages/, api.ts, theme hook + editor
+│           │   ├── stocks/   # Stocks pages/, api.ts, theme hook, editor + Agent chat
 │           │   └── todo/     # Todo pages/, api.ts + 16 components/
 │           ├── components/   # Platform-level (Layout, ConfirmModal, IconLookup)
 │           ├── lib/          # Shared client API (axios instance)
@@ -41,10 +41,10 @@ PersonalHub/
 
 ## Key Commands
 
-- `npm run dev` — starts both server (tsx watch) and client (Vite) via concurrently
+- `npm run dev` — starts both server (tsx watch) and client (Vite) via concurrently (`--raw` mode to avoid tsx watch output buffering)
 - `npm run build` — builds all packages in dependency order
 - `npm run db:studio` — opens Drizzle Studio to browse the SQLite database
-- Copy `.env.example` to `.env` and set `ALPHA_VANTAGE_API_KEY` to enable manual stock metric refreshes. Server startup loads the repo root `.env` first, then `packages/server/.env`.
+- Copy `.env.example` to `.env` and set `ALPHA_VANTAGE_API_KEY` to enable manual stock metric refreshes. Set `GITHUB_MODELS_TOKEN` (GitHub PAT with `models:read`) to enable the Stock Research Agent. Server startup loads the repo root `.env` first, then `packages/server/.env`.
 
 ## Documentation Maintenance
 
@@ -79,6 +79,7 @@ PersonalHub/
 - **IDs** are UUIDs generated with `uuid.v4()`.
 - **Inline migrations** run on every server startup via `runMigrations()` — all `CREATE TABLE IF NOT EXISTS` statements in `src/db/migrate.ts`.
 - **SQLite pragmas**: WAL journal mode, foreign keys ON.
+- **Body limit**: `express.json({ limit: '50mb' })` to support base64 image payloads in research notes.
 - **Environment loading**: Server startup loads the repo root `.env` first and `packages/server/.env` second via `dotenv`.
 
 ### DB Schema (Net Worth)
@@ -130,7 +131,8 @@ Indexes on `symbol`, `tracking_mode`, `status`, `updated_at`, `stock_id`, and `c
 ## Client Patterns (packages/client)
 
 - **React 19 + Vite + Tailwind CSS v4** with `@theme` custom properties for colors (primary=indigo, success=green, danger=red, warning=amber).
-- **TanStack Query v5** for all data fetching. Query keys are arrays: `['snapshots']`, `['snapshot', id]`, `['trends']`, `['insights-summary']`, `['goals']`, `['members']`, `['categories']`, `['todo-groups']`, `['todos']`, `['todo', id]`, `['todo-stats']`, `['todo-calendar', month]`, `['stocks-dashboard']`, `['stocks-summary']`, `['stock', id]`. Mutations invalidate related query keys on success.
+- **TanStack Query v5** for all data fetching. Query keys are arrays: `['snapshots']`, `['snapshot', id]`, `['trends']`, `['insights-summary']`, `['goals']`, `['members']`, `['categories']`, `['todo-groups']`, `['todos']`, `['todo', id]`, `['todo-stats']`, `['todo-calendar', month]`, `['stocks-dashboard']`, `['stocks-summary']`, `['stock', id]`, `['stock-presets']`. Mutations invalidate related query keys on success.
+- **Global toast notifications**: `react-hot-toast` with a global `MutationCache` in `main.tsx`. Mutations that set `meta: { successMessage: '...' }` get an automatic success toast. All mutation errors show an error toast by default. The `<Toaster>` is rendered in `App.tsx` at bottom-right with a dark theme.
 - **App-scoped API layer**: Each app has its own `api.ts` at `src/apps/<appName>/api.ts` with an axios instance (`baseURL: '/api/<appName>'`). Platform-level shared API at `src/lib/api.ts` (`baseURL: '/api'`).
 - **React Router v7** — Layout as parent route with `<Outlet />`. App pages are nested under `/<appName>/*`. Platform pages (Home, Help) are at root level.
 - **Lucide React** for icons — imported as components. Dynamic icon lookup in `IconLookup.tsx` converts kebab-case names to PascalCase for `lucide-react`'s `icons` map.
@@ -147,7 +149,7 @@ Indexes on `symbol`, `tracking_mode`, `status`, `updated_at`, `stock_id`, and `c
 - **Calendar drag-and-drop** also uses `@dnd-kit/core` so users can reschedule one-off todos by moving their due date between calendar days. Dragging a recurring instance detaches that occurrence into a standalone todo.
 - **Framer Motion** for layout animations (card enter/exit via `AnimatePresence`, inline expand via `motion.div`, page transitions, modal entrance, calendar month slide).
 - **React Spring** (`@react-spring/web`) for spring-physics animated counters in stats widgets and checkbox bounce.
-- **Tiptap** (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-placeholder`, `@tiptap/extension-task-list`, `@tiptap/extension-task-item`) for rich-text WYSIWYG notes on todos. Notion-like minimal toolbar.
+- **Tiptap** (`@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/extension-placeholder`, `@tiptap/extension-task-list`, `@tiptap/extension-task-item`, `@tiptap/extension-image`, `@tiptap/extension-link`) for rich-text WYSIWYG notes on todos and stock research journals. Toolbar includes heading, bold, italic, bullet list, task list, code block, link, image upload, horizontal rule, undo/redo. Images are pasted/dropped as base64 data URLs inline in HTML. Links open prompt for URL.
 - **date-fns** for all date operations — calendar grid generation, recurrence expansion, relative date comparisons.
 - **16 components** in `src/apps/todo/components/`: PriorityBadge, StatusBadge, QuickAdd, IconSuggest, GroupManager, RecurrenceEditor, TiptapEditor, TodoCard, TodoDetail, KanbanColumn, KanbanBoard, TodayFocus, OverdueUpcoming, CompletionStats, CalendarGrid, CalendarDay.
 - **Priority colors** defined in `index.css` `@theme` block: `--color-priority-high` (red), `--color-priority-medium` (amber), `--color-priority-low` (green).
@@ -180,8 +182,19 @@ Indexes on `symbol`, `tracking_mode`, `status`, `updated_at`, `stock_id`, and `c
 - **Version history**: Every save writes a full payload snapshot into `stock_versions`; the `stocks` table stores the latest editable state for fast reads.
 - **Alpha Vantage refresh**: Manual refresh only in v1. `POST /api/stocks/:id/refresh` updates `stock_metrics_cache` and may append an `api-refresh` version when metadata changes.
 - **Manual overrides**: Current price, target price, P/E, P/B, P/S, and EPS growth can be set manually and override cached API values in effective metrics.
-- **Notes editor**: Stocks reuse the Todo app's Tiptap editor for long-form research notes.
-- **Stocks dashboard**: `/stocks` shows active tracked names, derived upside percentage, refresh state, and position value. `/stocks/:id` combines metrics, version history, and the full editor.
+- **Notes editor**: Stocks use a promoted full-width Research Journal panel (TiptapEditor with image/link support) below the form grid on the Stock Detail page. Images are stored as base64 in `notes_html`.
+- **Stocks dashboard**: `/stocks` shows active tracked names, derived upside percentage, refresh state, and position value. Supports search, 18 sort options, sector filter, 9 range filters, and custom saved presets (`config/stocks/presets.json`).
+- **Custom presets**: CRUD API at `/api/stocks/presets`. Presets store filter/sort state in a JSON config file. Dashboard loads and applies presets from a dropdown.
+- **Stock Detail layout**: Metrics are displayed in a 3-column responsive grid (Trading Tape, Valuation, Growth). The StockEditor form fields sit below with a 2-column internal layout. The Research Journal is a full-width section below the form.
+
+### Stocks Agent
+- **Architecture**: Express SSE endpoint (`POST /api/stocks/agent/chat`) → OpenAI SDK (pointed at GitHub Models `https://models.github.ai/inference`) → MCP client (stdio transport to `alpha-vantage-mcp-server` subprocess).
+- **MCP client**: `packages/server/src/apps/stocks/lib/mcpClient.ts` — lazy init, spawns subprocess on first use, caches tool schemas. Provides `listTools()` and `callTool(name, args)`.
+- **Agent route**: `packages/server/src/apps/stocks/routes/agent.ts` — validates messages, loads MCP tools, converts to OpenAI function format, runs up to 10 tool-call rounds, then streams final response as SSE events (`token`, `status`, `error`, `done`).
+- **Client page**: `packages/client/src/apps/stocks/pages/Agent.tsx` — dark-themed chat UI with welcome state, 6 starter prompts, streaming token rendering, tool-call indicators, and error display.
+- **Client streaming**: `streamAgentChat()` in `api.ts` uses native `fetch()` with `ReadableStream` to parse SSE (not axios, which doesn't support streaming).
+- **Environment**: `GITHUB_MODELS_TOKEN` (PAT with `models:read`), `AGENT_MODEL` (default `openai/gpt-4o-mini`), `AGENT_BASE_URL` (default `https://models.github.ai/inference`).
+- **Server deps**: `openai`, `@modelcontextprotocol/sdk`, `alpha-vantage-mcp-server`.
 
 ## When Adding a New App
 

@@ -397,6 +397,23 @@ router.post('/', (req: Request, res: Response) => {
     db.insert(stocks).values(stock).run();
     writeVersion(stock, 'manual');
 
+    // If initial metrics from a lookup are provided, seed the metrics cache
+    if (body.initialMetrics) {
+      const cacheRecord: typeof stockMetricsCache.$inferInsert = {
+        id: uuidv4(),
+        stockId: stock.id,
+        source: 'alpha-vantage',
+        refreshState: 'fresh',
+        ...body.initialMetrics,
+        analystRating: body.initialAnalystRating ?? null,
+        fetchedAt: now,
+        errorMessage: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.insert(stockMetricsCache).values(cacheRecord).run();
+    }
+
     res.status(201).json(stock);
   } catch (err) {
     console.error('Error creating stock:', err);

@@ -13,6 +13,7 @@ export default function Snapshots() {
 
   const deleteMut = useMutation({
     mutationFn: deleteSnapshot,
+    meta: { successMessage: 'Snapshot deleted' },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['snapshots'] }),
   });
 

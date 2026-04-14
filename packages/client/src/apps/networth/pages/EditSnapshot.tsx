@@ -79,6 +79,7 @@ export default function EditSnapshot() {
 
   const mutation = useMutation({
     mutationFn: (data: Parameters<typeof updateSnapshot>[1]) => updateSnapshot(id!, data),
+    meta: { successMessage: 'Snapshot saved' },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['snapshots'] });
       queryClient.invalidateQueries({ queryKey: ['snapshot', id] });

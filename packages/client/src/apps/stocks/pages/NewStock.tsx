@@ -13,6 +13,7 @@ export default function NewStock() {
 
   const createMutation = useMutation({
     mutationFn: createStock,
+    meta: { successMessage: 'Stock created' },
     onSuccess: (stock) => {
       queryClient.invalidateQueries({ queryKey: ['stocks-dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['stocks-summary'] });
@@ -42,7 +43,14 @@ export default function NewStock() {
         refreshing={lookupMutation.isPending}
         lookupPreview={lookupMutation.data ?? null}
         onRefresh={(symbol) => lookupMutation.mutateAsync(symbol)}
-        onSave={(payload) => createMutation.mutate(payload as CreateStockRequest)}
+        onSave={(payload) => {
+          const create = payload as CreateStockRequest;
+          if (lookupMutation.data) {
+            create.initialMetrics = lookupMutation.data.metrics;
+            create.initialAnalystRating = lookupMutation.data.analystRating;
+          }
+          createMutation.mutate(create);
+        }}
       />
     </div>
   );

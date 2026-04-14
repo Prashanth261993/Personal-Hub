@@ -401,6 +401,9 @@ export interface CreateStockRequest {
   manualPbRatio?: number | null;
   manualPsRatio?: number | null;
   manualEpsGrowth?: number | null;
+  /** Full metrics snapshot from a lookup — saved to stock_metrics_cache on create */
+  initialMetrics?: StockMetricsSnapshot;
+  initialAnalystRating?: string | null;
 }
 
 export interface UpdateStockRequest extends Partial<CreateStockRequest> {
@@ -451,6 +454,47 @@ export interface StocksHomeSummary {
   holdingsCount: number;
   averageUpsidePercent: number | null;
   refreshedTodayCount: number;
+}
+
+export interface StockPresetRangeFilter {
+  min: string;
+  max: string;
+}
+
+export interface StockPresetFilters {
+  upsidePercent?: StockPresetRangeFilter;
+  peRatio?: StockPresetRangeFilter;
+  pbRatio?: StockPresetRangeFilter;
+  epsGrowth?: StockPresetRangeFilter;
+  dividendYield?: StockPresetRangeFilter;
+  marketCap?: StockPresetRangeFilter;
+  beta?: StockPresetRangeFilter;
+  profitMargin?: StockPresetRangeFilter;
+  returnOnEquityTtm?: StockPresetRangeFilter;
+}
+
+export interface StockPreset {
+  id: string;
+  label: string;
+  description: string;
+  builtIn: boolean;
+  filters: StockPresetFilters;
+  createdAt: string;
+}
+
+export interface StockPresetsConfig {
+  presets: StockPreset[];
+}
+
+// ── Stocks Agent Types ──
+
+export interface AgentMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface AgentChatRequest {
+  messages: AgentMessage[];
 }
 
 // ── Platform Types ──

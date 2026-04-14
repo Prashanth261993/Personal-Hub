@@ -8,7 +8,7 @@ A personal productivity platform with a modular app architecture. React SPA fron
 |-----|-------|-------------|--------|
 | **Net Worth** | `/networth` | Track assets and liabilities for each family member, view trends, and get insights | Active |
 | **Planning / Todo** | `/todo` | Ultra-modern task management with Kanban board, calendar view, recurring tasks, subtasks, rich-text notes, and drag-and-drop | Active |
-| **Stocks** | `/stocks` | Track watchlist ideas and holdings with valuation metrics, Alpha Vantage refresh, rich research notes, and version history | Active |
+| **Stocks** | `/stocks` | Track watchlist ideas and holdings with valuation metrics, Alpha Vantage refresh, rich research notes with image support, version history, dashboard search/sort/filters, custom presets, and an AI-powered research agent | Active |
 
 ## Architecture
 
@@ -27,7 +27,7 @@ PersonalHub/
 │   │   └── src/
 │   │       ├── apps/
 │   │       │   ├── networth/    # Net Worth routes
-│   │       │   ├── stocks/      # Stocks routes, Alpha Vantage integration, version history
+│   │       │   ├── stocks/      # Stocks routes, Alpha Vantage, MCP agent, presets
 │   │       │   └── todo/        # Todo routes (groups, todos, stats)
 │   │       ├── db/              # Drizzle ORM + SQLite
 │   │       └── lib/             # Shared server helpers
@@ -35,7 +35,7 @@ PersonalHub/
 │       └── src/
 │           ├── apps/
 │           │   ├── networth/    # Net Worth pages & API
-│           │   ├── stocks/      # Stocks pages, API & editor components
+│           │   ├── stocks/      # Stocks pages, API, editor, theme & Agent chat
 │           │   └── todo/        # Todo pages, API & 16 components
 │           ├── components/      # Platform-level components (Layout, etc.)
 │           ├── lib/             # Shared client helpers
@@ -67,7 +67,7 @@ npm install
 
 ### 2. Start the app
 
-If you want manual Alpha Vantage refreshes in the Stocks app, create a local `.env` from `.env.example` and set `ALPHA_VANTAGE_API_KEY` before starting the server.
+If you want manual Alpha Vantage refreshes in the Stocks app, create a local `.env` from `.env.example` and set `ALPHA_VANTAGE_API_KEY` before starting the server. To enable the AI-powered Stock Research Agent, also set `GITHUB_MODELS_TOKEN` (a GitHub PAT with `models:read` permission).
 
 ```bash
 npm run dev
@@ -145,6 +145,11 @@ Navigate to **http://localhost:5173** — the Home page shows all available apps
 | DELETE | `/api/stocks/:id` | Delete a stock, its metrics cache, and version history |
 | GET | `/api/stocks/:id/history` | List saved versions for a stock |
 | POST | `/api/stocks/:id/refresh` | Manually refresh Alpha Vantage metrics for one stock |
+| GET | `/api/stocks/presets` | List saved dashboard filter presets |
+| POST | `/api/stocks/presets` | Create a filter preset |
+| PUT | `/api/stocks/presets/:id` | Update a filter preset |
+| DELETE | `/api/stocks/presets/:id` | Delete a filter preset |
+| POST | `/api/stocks/agent/chat` | Chat with the AI research agent (SSE stream) |
 
 ---
 
@@ -163,7 +168,8 @@ Navigate to **http://localhost:5173** — the Home page shows all available apps
 | `/todo/calendar` | Todo Calendar | Monthly calendar grid with todo chips per day and drag-to-reschedule support |
 | `/stocks` | Stocks Dashboard | Finance-style dashboard for tracked stocks with upside and valuation metrics |
 | `/stocks/new` | New Stock | Create a stock record with thesis, notes, and manual overrides |
-| `/stocks/:id` | Stock Detail | Edit stock details, refresh Alpha Vantage data, and browse version history |
+| `/stocks/:id` | Stock Detail | Full-width metrics, research journal with image support, manual overrides, and version history |
+| `/stocks/agent` | Stock Agent | AI-powered research assistant chat using Alpha Vantage via MCP |
 | `/help` | Help | In-app guide |
 
 ---
@@ -203,6 +209,11 @@ Server environment variables are loaded from the repo root `.env` first, then `p
 ```env
 PORT=3001
 ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key_here
+
+# Stocks Agent (GitHub Models or any OpenAI-compatible endpoint)
+GITHUB_MODELS_TOKEN=your_github_pat_with_models_read
+AGENT_MODEL=gpt-4o-mini
+AGENT_BASE_URL=https://models.github.ai/inference
 ```
 
 ### config/networth/family-members.json
@@ -250,7 +261,7 @@ The Planning / Todo app is a feature-rich task manager built with an ultra-moder
 - **Priorities** — 3 levels (High/red, Medium/amber, Low/green) with color-coded badges
 - **Recurring Tasks** — daily, weekly, monthly, yearly with custom intervals and weekday selection. Recurring todos stay open; completions are tracked per-date. Dragging a recurring calendar instance to a new day detaches that occurrence into a standalone todo and records the original date as a recurrence exception
 - **Subtasks** — todos with a `parentId` (same table, max 1 level deep)
-- **Rich Notes** — Tiptap WYSIWYG editor with bold, italic, bullet list, task checklist, and code blocks
+- **Rich Notes** — Tiptap WYSIWYG editor with bold, italic, headings, bullet list, task checklist, code blocks, links, images (paste/drag-drop as base64), and horizontal rules
 - **Groups** — dynamic groups with custom name, color, and Lucide icon (auto-suggested from name keywords)
 - **Animations** — Framer Motion for layout transitions, React Spring for animated counters and micro-interactions
 
@@ -261,7 +272,7 @@ The Planning / Todo app is a feature-rich task manager built with an ultra-moder
 | `@dnd-kit/core` + `@dnd-kit/sortable` | Drag-and-drop for Kanban board and calendar rescheduling |
 | `framer-motion` | Layout animations, presence, page transitions |
 | `@react-spring/web` | Spring-physics animated counters |
-| `@tiptap/react` + extensions | Rich-text WYSIWYG editor |
+| `@tiptap/react` + extensions | Rich-text WYSIWYG editor with image and link support |
 | `date-fns` | Date manipulation for calendar and recurrence |
 
 ---
@@ -274,8 +285,11 @@ The Stocks app is a finance-oriented research workspace for both watchlist ideas
 - **Version History** — every save appends a full stock version snapshot so thesis and override changes remain auditable
 - **Manual API Refresh** — Alpha Vantage refreshes are explicit, per-stock actions instead of background polling
 - **Valuation Metrics** — dashboard and detail pages surface current price, analyst target, P/E, P/B, P/S, EPS growth, and derived upside percentage
-- **Rich Research Notes** — Tiptap powers a large-form editor for thesis updates, earnings notes, and catalysts
+- **Dashboard Search & Filters** — text search, 18 sort options, sector filter, 9 numeric range filters, and saved custom presets (`config/stocks/presets.json`)
+- **Rich Research Notes** — full-width Research Journal section with Tiptap editor supporting images (paste, drag-drop, toolbar upload as base64), links, headings, and task lists
+- **AI Research Agent** — chat-based assistant at `/stocks/agent` powered by GitHub Models (or any OpenAI-compatible endpoint) with Alpha Vantage tools via MCP. Supports real-time streaming via SSE
 - **Dark Finance UI** — the Stocks experience has app-scoped dark/light theming without re-theming the rest of the platform
+- **Toast Notifications** — global mutation feedback via `react-hot-toast` and TanStack Query `MutationCache`
 
 ### Stocks Data Model
 

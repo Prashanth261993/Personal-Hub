@@ -13,6 +13,7 @@ dist/
 data/*.db
 data/*.db-journal
 data/*.db-wal
+data/*.db-shm
 
 # Environment
 .env
@@ -23,3 +24,7 @@ data/*.db-wal
 Thumbs.db
 .copilot-cli/
 .github/instructions/orchestrator-*.instructions.md
+
+# Playwright
+
+.playwright-mcp

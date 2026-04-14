@@ -1,5 +1,5 @@
 {
-  "lastReviewedCommit": "f3fa1c31fd87cb8973df6c8f951599e0adf64fb3",
-  "lastReviewedAt": "2026-03-22T15:27:31.2239191-07:00",
-  "notes": "README.md and .github/copilot-instructions.md have been reviewed through this commit, with staged and unstaged Stocks and env changes reflected in docs."
+  "lastReviewedCommit": "d9c8f289d142d0657e8f961c571a47fe9ac56261",
+  "lastReviewedAt": "2026-04-14T22:50:00.000Z",
+  "notes": "Documented: Stock Research Agent (MCP + GitHub Models + SSE), custom dashboard presets, search/sort/filters, TiptapEditor image + link extensions, Research Journal full-width layout, express.json 50mb limit, react-hot-toast global MutationCache, concurrently --raw, env vars for agent."
 }
