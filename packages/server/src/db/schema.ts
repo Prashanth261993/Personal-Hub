@@ -83,6 +83,9 @@ export const stocks = sqliteTable('stocks', {
   manualEpsGrowth: real('manual_eps_growth'),
   lastManualUpdateAt: text('last_manual_update_at'),
   lastSyncedAt: text('last_synced_at'),
+  plaidAccountId: text('plaid_account_id'),
+  syncSource: text('sync_source', { enum: ['manual', 'plaid'] }).default('manual'),
+  lastPlaidSyncAt: text('last_plaid_sync_at'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 }, (table) => ([
@@ -144,3 +147,56 @@ export const stockVersions = sqliteTable('stock_versions', {
   payload: text('payload').notNull(),
   createdAt: text('created_at').notNull(),
 });
+
+// ── Plaid Brokerage Integration ──
+
+export const plaidConnections = sqliteTable('plaid_connections', {
+  id: text('id').primaryKey(),
+  institutionName: text('institution_name').notNull(),
+  institutionId: text('institution_id').notNull(),
+  accessToken: text('access_token').notNull(),
+  itemId: text('item_id').notNull(),
+  accountsJson: text('accounts_json'),
+  lastSyncedAt: text('last_synced_at'),
+  createdAt: text('created_at').notNull(),
+}, (table) => ([
+  uniqueIndex('idx_plaid_item').on(table.itemId),
+]));
+
+export const stockLots = sqliteTable('stock_lots', {
+  id: text('id').primaryKey(),
+  stockId: text('stock_id')
+    .notNull()
+    .references(() => stocks.id, { onDelete: 'cascade' }),
+  connectionId: text('connection_id')
+    .references(() => plaidConnections.id, { onDelete: 'set null' }),
+  plaidTransactionId: text('plaid_transaction_id'),
+  buyDate: text('buy_date').notNull(),
+  quantity: real('quantity').notNull(),
+  originalQuantity: real('original_quantity').notNull(),
+  priceCents: integer('price_cents').notNull(),
+  feesCents: integer('fees_cents').notNull().default(0),
+  source: text('source', { enum: ['plaid', 'manual'] }).notNull().default('manual'),
+  createdAt: text('created_at').notNull(),
+}, (table) => ([
+  uniqueIndex('idx_stock_lots_plaid_txn').on(table.plaidTransactionId),
+]));
+
+export const stockTransactions = sqliteTable('stock_transactions', {
+  id: text('id').primaryKey(),
+  stockId: text('stock_id')
+    .notNull()
+    .references(() => stocks.id, { onDelete: 'cascade' }),
+  connectionId: text('connection_id')
+    .references(() => plaidConnections.id, { onDelete: 'set null' }),
+  plaidTransactionId: text('plaid_transaction_id'),
+  type: text('type', { enum: ['buy', 'sell', 'dividend', 'transfer', 'fee'] }).notNull(),
+  date: text('date').notNull(),
+  quantity: real('quantity').notNull(),
+  priceCents: integer('price_cents').notNull(),
+  amountCents: integer('amount_cents').notNull(),
+  feesCents: integer('fees_cents').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+}, (table) => ([
+  uniqueIndex('idx_stock_txns_plaid_txn').on(table.plaidTransactionId),
+]));

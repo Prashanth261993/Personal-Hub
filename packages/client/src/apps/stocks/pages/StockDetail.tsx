@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Clock3, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Clock3, RefreshCw, TrendingUp, TrendingDown, ArrowDownCircle, ArrowUpCircle, DollarSign, Percent } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { formatCurrency, formatPercent } from '@networth/shared';
-import { fetchStock, refreshStock, updateStock } from '../api';
+import type { LotSummary, StockTransaction } from '@networth/shared';
+import { fetchStock, refreshStock, updateStock, fetchStockLots, fetchStockTransactions } from '../api';
 import StockEditor from '../components/StockEditor';
 import { useStocksTheme } from '../useStocksTheme';
 
@@ -46,11 +47,23 @@ export default function StockDetail() {
   const refreshMutation = useMutation({
     mutationFn: () => refreshStock(stockId),
     meta: { successMessage: 'Metrics refreshed' },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['stock', stockId] });
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: ['stock', stockId] });
       queryClient.invalidateQueries({ queryKey: ['stocks-dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['stocks-summary'] });
     },
+  });
+
+  const { data: lots } = useQuery({
+    queryKey: ['stock-lots', stockId],
+    queryFn: () => fetchStockLots(stockId),
+    enabled: Boolean(stockId),
+  });
+
+  const { data: transactions } = useQuery({
+    queryKey: ['stock-transactions', stockId],
+    queryFn: () => fetchStockTransactions(stockId),
+    enabled: Boolean(stockId),
   });
 
   if (isLoading || !stock) {
@@ -139,6 +152,91 @@ export default function StockDetail() {
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Tax Lots Panel */}
+        {lots && lots.length > 0 && (
+          <div className="stocks-panel md:col-span-2">
+            <p className="stocks-eyebrow">FIFO Tax Lots</p>
+            <h2 className="stocks-panel-title">Position Breakdown</h2>
+            {(() => {
+              const totalShares = lots.reduce((s, l) => s + l.quantity, 0);
+              const longTermShares = lots.filter((l) => l.isLongTerm).reduce((s, l) => s + l.quantity, 0);
+              const shortTermShares = totalShares - longTermShares;
+              const ltPct = totalShares > 0 ? Math.round((longTermShares / totalShares) * 100) : 0;
+              return (
+                <div className="flex flex-wrap gap-4 mt-3 mb-4">
+                  <div className="stocks-metric-tile"><span>Total Shares</span><strong>{totalShares.toFixed(2)}</strong></div>
+                  <div className="stocks-metric-tile"><span>Long-term</span><strong>{longTermShares.toFixed(2)} ({ltPct}%)</strong></div>
+                  <div className="stocks-metric-tile"><span>Short-term</span><strong>{shortTermShares.toFixed(2)} ({100 - ltPct}%)</strong></div>
+                </div>
+              );
+            })()}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-[var(--stocks-text-muted)] text-xs uppercase tracking-wider border-b border-[var(--stocks-border)]">
+                    <th className="text-left py-2 pr-4">Buy Date</th>
+                    <th className="text-right py-2 px-2">Qty</th>
+                    <th className="text-right py-2 px-2">Cost/Share</th>
+                    <th className="text-right py-2 px-2">Total Cost</th>
+                    <th className="text-right py-2 px-2">Current Value</th>
+                    <th className="text-right py-2 px-2">Gain/Loss</th>
+                    <th className="text-right py-2 px-2">Days Held</th>
+                    <th className="text-center py-2 pl-2">Type</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lots.map((lot) => (
+                    <tr key={lot.id} className="border-b border-[var(--stocks-border)] last:border-0">
+                      <td className="py-2 pr-4 text-[var(--stocks-text-strong)]">{lot.buyDate}</td>
+                      <td className="py-2 px-2 text-right text-[var(--stocks-text)]">{lot.quantity.toFixed(2)}</td>
+                      <td className="py-2 px-2 text-right text-[var(--stocks-text)]">{formatCurrency(lot.priceCents)}</td>
+                      <td className="py-2 px-2 text-right text-[var(--stocks-text)]">{formatCurrency(lot.costBasisCents)}</td>
+                      <td className="py-2 px-2 text-right text-[var(--stocks-text)]">{lot.currentValueCents ? formatCurrency(lot.currentValueCents) : '—'}</td>
+                      <td className={`py-2 px-2 text-right font-medium ${lot.gainLossCents >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {lot.currentValueCents ? `${formatCurrency(lot.gainLossCents)} (${lot.gainLossPercent >= 0 ? '+' : ''}${lot.gainLossPercent.toFixed(1)}%)` : '—'}
+                      </td>
+                      <td className="py-2 px-2 text-right text-[var(--stocks-text-muted)]">{lot.holdingDays}d</td>
+                      <td className="py-2 pl-2 text-center">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${lot.isLongTerm ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                          {lot.isLongTerm ? 'LT' : 'ST'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Transaction Timeline */}
+        {transactions && transactions.length > 0 && (
+          <div className="stocks-panel">
+            <p className="stocks-eyebrow">Trade History</p>
+            <h2 className="stocks-panel-title">Transaction Timeline</h2>
+            <div className="space-y-3 mt-5 max-h-96 overflow-y-auto">
+              {transactions.map((txn) => {
+                const icon = txn.type === 'buy' ? ArrowDownCircle : txn.type === 'sell' ? ArrowUpCircle : DollarSign;
+                const Icon = icon;
+                const color = txn.type === 'buy' ? 'text-emerald-400' : txn.type === 'sell' ? 'text-red-400' : 'text-amber-400';
+                return (
+                  <div key={txn.id} className="flex items-center gap-3 py-2 border-b border-[var(--stocks-border)] last:border-0">
+                    <Icon className={`w-4 h-4 flex-shrink-0 ${color}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-[var(--stocks-text-strong)] capitalize">{txn.type}</p>
+                      <p className="text-xs text-[var(--stocks-text-muted)]">{txn.date}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-[var(--stocks-text)]">{txn.quantity.toFixed(2)} @ {formatCurrency(txn.priceCents)}</p>
+                      <p className="text-xs text-[var(--stocks-text-muted)]">{formatCurrency(txn.amountCents)}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="stocks-panel">
           <p className="stocks-eyebrow">Version History</p>
           <h2 className="stocks-panel-title">Save Timeline</h2>

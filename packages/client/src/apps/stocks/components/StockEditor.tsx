@@ -281,17 +281,39 @@ export default function StockEditor({ stock, saving = false, refreshing = false,
 
       <div className="space-y-6">
         <div className="stocks-panel space-y-4">
-          <div>
-            <p className="stocks-eyebrow">Position Inputs</p>
-            <h3 className="stocks-panel-title">Holding State</h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="stocks-eyebrow">Position Inputs</p>
+              <h3 className="stocks-panel-title">Holding State</h3>
+            </div>
+            {stock?.syncSource === 'plaid' && (
+              <span className="text-xs px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 font-medium">
+                Synced from Plaid
+                {stock.lastPlaidSyncAt && <span className="text-[var(--stocks-text-muted)] ml-1">· {new Date(stock.lastPlaidSyncAt).toLocaleDateString()}</span>}
+              </span>
+            )}
           </div>
           <label className="stocks-field">
             <span>Shares</span>
-            <input value={form.shares} onChange={(e) => setField('shares', e.target.value)} placeholder="12.5" inputMode="decimal" />
+            <input
+              value={form.shares}
+              onChange={(e) => setField('shares', e.target.value)}
+              placeholder="12.5"
+              inputMode="decimal"
+              readOnly={stock?.syncSource === 'plaid'}
+              className={stock?.syncSource === 'plaid' ? 'opacity-60' : ''}
+            />
           </label>
           <label className="stocks-field">
             <span>Average Cost Basis ($)</span>
-            <input value={form.averageCostBasis} onChange={(e) => setField('averageCostBasis', e.target.value)} placeholder="412.34" inputMode="decimal" />
+            <input
+              value={form.averageCostBasis}
+              onChange={(e) => setField('averageCostBasis', e.target.value)}
+              placeholder="412.34"
+              inputMode="decimal"
+              readOnly={stock?.syncSource === 'plaid'}
+              className={stock?.syncSource === 'plaid' ? 'opacity-60' : ''}
+            />
           </label>
         </div>
 
