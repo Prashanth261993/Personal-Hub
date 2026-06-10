@@ -297,6 +297,9 @@ export interface Stock {
   manualEpsGrowth: number | null;       // percentage
   lastManualUpdateAt: string | null;
   lastSyncedAt: string | null;
+  plaidAccountId: string | null;
+  syncSource: 'manual' | 'plaid' | null;
+  lastPlaidSyncAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -484,6 +487,91 @@ export interface StockPreset {
 
 export interface StockPresetsConfig {
   presets: StockPreset[];
+}
+
+// ── Plaid / Brokerage Types ──
+
+export interface PlaidConnection {
+  id: string;
+  institutionName: string;
+  institutionId: string;
+  accountsJson: string | null;
+  lastSyncedAt: string | null;
+  createdAt: string;
+}
+
+export type StockTransactionType = 'buy' | 'sell' | 'dividend' | 'transfer' | 'fee';
+
+export interface StockTransaction {
+  id: string;
+  stockId: string;
+  connectionId: string | null;
+  type: StockTransactionType;
+  date: string;                   // YYYY-MM-DD
+  quantity: number;
+  priceCents: number;             // price per share in cents
+  amountCents: number;            // total amount in cents
+  feesCents: number;
+  createdAt: string;
+}
+
+export interface StockLot {
+  id: string;
+  stockId: string;
+  connectionId: string | null;
+  buyDate: string;                // YYYY-MM-DD
+  quantity: number;               // remaining shares (decremented on sell via FIFO)
+  originalQuantity: number;       // shares originally purchased
+  priceCents: number;             // price per share at purchase in cents
+  feesCents: number;
+  source: 'plaid' | 'manual';
+  createdAt: string;
+}
+
+/** Computed per-lot summary for the detail view (not persisted) */
+export interface LotSummary {
+  id: string;
+  buyDate: string;
+  quantity: number;
+  originalQuantity: number;
+  priceCents: number;
+  costBasisCents: number;         // quantity × priceCents
+  currentValueCents: number;      // quantity × currentPriceCents
+  gainLossCents: number;          // currentValueCents - costBasisCents
+  gainLossPercent: number;
+  holdingDays: number;
+  isLongTerm: boolean;            // holdingDays > 365
+  source: 'plaid' | 'manual';
+}
+
+export interface PlaidSyncResult {
+  synced: { symbol: string; shares: number; avgCostBasisCents: number }[];
+  skipped: string[];              // symbols in Plaid but not tracked
+  errors: string[];
+}
+
+/** Preview of a single Plaid holding before sync — user picks which to import */
+export interface PlaidHoldingPreview {
+  symbol: string;
+  name: string;
+  shares: number;
+  costBasisCents: number | null;
+  currentPriceCents: number | null;
+  currentValueCents: number | null;
+  isTracked: boolean;             // true if symbol exists in stocks table
+  accountId: string;
+}
+
+/** A single data point in the metrics history time series */
+export interface MetricsHistoryPoint {
+  date: string;                   // YYYY-MM-DD
+  source: string;
+  currentPrice: number | null;    // cents
+  targetPrice: number | null;     // cents
+  peRatio: number | null;
+  pbRatio: number | null;
+  psRatio: number | null;
+  epsGrowth: number | null;       // percentage
 }
 
 // ── Stocks Agent Types ──

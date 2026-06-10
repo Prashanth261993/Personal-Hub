@@ -16,6 +16,7 @@ import {
   CirclePlus,
   LineChart,
   Bot,
+  Landmark,
 } from 'lucide-react';
 
 interface NavApp {
@@ -58,6 +59,7 @@ const apps: NavApp[] = [
       { to: '/stocks', label: 'Dashboard', icon: LayoutDashboard },
       { to: '/stocks/new', label: 'Add Stock', icon: CirclePlus },
       { to: '/stocks/agent', label: 'Agent', icon: Bot },
+      { to: '/stocks/brokerage', label: 'Brokerage', icon: Landmark },
     ],
   },
 ];

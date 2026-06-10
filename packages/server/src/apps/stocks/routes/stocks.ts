@@ -18,7 +18,7 @@ import type {
   UpdateStockRequest,
 } from '@networth/shared';
 import { db } from '../../../db/index.js';
-import { stockMetricsCache, stocks, stockVersions } from '../../../db/schema.js';
+import { stockMetricsCache, stocks, stockVersions, stockLots, stockTransactions } from '../../../db/schema.js';
 import { fetchAlphaVantageMetrics } from '../lib/alphaVantage.js';
 
 const router = Router();
@@ -328,6 +328,106 @@ router.get('/:id/history', (req: Request, res: Response) => {
   }
 });
 
+router.get('/:id/transactions', (req: Request, res: Response) => {
+  try {
+    const stock = db.select().from(stocks).where(eq(stocks.id, paramId(req))).get();
+    if (!stock) { res.status(404).json({ error: 'Stock not found' }); return; }
+
+    const rows = db.select().from(stockTransactions)
+      .where(eq(stockTransactions.stockId, stock.id))
+      .orderBy(desc(stockTransactions.date))
+      .all();
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching stock transactions:', err);
+    res.status(500).json({ error: 'Failed to fetch transactions' });
+  }
+});
+
+router.get('/:id/lots', (req: Request, res: Response) => {
+  try {
+    const stock = db.select().from(stocks).where(eq(stocks.id, paramId(req))).get();
+    if (!stock) { res.status(404).json({ error: 'Stock not found' }); return; }
+
+    // Get effective current price for gain/loss computation
+    const metricsRow = db.select().from(stockMetricsCache).where(eq(stockMetricsCache.stockId, stock.id)).get();
+    const currentPriceCents = stock.manualCurrentPrice ?? metricsRow?.currentPrice ?? null;
+
+    const lots = db.select().from(stockLots)
+      .where(eq(stockLots.stockId, stock.id))
+      .orderBy(stockLots.buyDate)
+      .all()
+      .filter((l) => l.quantity > 0);
+
+    const today = new Date();
+    const summaries = lots.map((lot) => {
+      const buyDate = new Date(lot.buyDate);
+      const holdingDays = Math.floor((today.getTime() - buyDate.getTime()) / 86400000);
+      const costBasisCents = Math.round(lot.quantity * lot.priceCents);
+      const currentValueCents = currentPriceCents ? Math.round(lot.quantity * currentPriceCents) : 0;
+      const gainLossCents = currentPriceCents ? currentValueCents - costBasisCents : 0;
+      const gainLossPercent = costBasisCents > 0 ? (gainLossCents / costBasisCents) * 100 : 0;
+
+      return {
+        id: lot.id,
+        buyDate: lot.buyDate,
+        quantity: lot.quantity,
+        originalQuantity: lot.originalQuantity,
+        priceCents: lot.priceCents,
+        costBasisCents,
+        currentValueCents,
+        gainLossCents,
+        gainLossPercent,
+        holdingDays,
+        isLongTerm: holdingDays > 365,
+        source: lot.source,
+      };
+    });
+
+    res.json(summaries);
+  } catch (err) {
+    console.error('Error fetching stock lots:', err);
+    res.status(500).json({ error: 'Failed to fetch lots' });
+  }
+});
+
+router.get('/:id/metrics-history', (req: Request, res: Response) => {
+  try {
+    const stock = db.select().from(stocks).where(eq(stocks.id, paramId(req))).get();
+    if (!stock) { res.status(404).json({ error: 'Stock not found' }); return; }
+
+    const versions = db.select().from(stockVersions)
+      .where(eq(stockVersions.stockId, stock.id))
+      .orderBy(stockVersions.createdAt)
+      .all();
+
+    const points = versions.map((v) => {
+      const p = JSON.parse(v.payload) as StockVersionPayload;
+      return {
+        date: v.createdAt.split('T')[0],
+        source: v.source,
+        currentPrice: p.manualCurrentPrice,
+        targetPrice: p.manualTargetPrice,
+        peRatio: p.manualPeRatio,
+        pbRatio: p.manualPbRatio,
+        psRatio: p.manualPsRatio,
+        epsGrowth: p.manualEpsGrowth,
+      };
+    });
+
+    // Deduplicate by date — keep latest entry per date
+    const byDate = new Map<string, typeof points[number]>();
+    for (const p of points) {
+      byDate.set(p.date, p);
+    }
+
+    res.json(Array.from(byDate.values()));
+  } catch (err) {
+    console.error('Error fetching metrics history:', err);
+    res.status(500).json({ error: 'Failed to fetch metrics history' });
+  }
+});
+
 router.get('/:id', (req: Request, res: Response) => {
   try {
     const stock = db.select().from(stocks).where(eq(stocks.id, paramId(req))).get();
@@ -390,6 +490,9 @@ router.post('/', (req: Request, res: Response) => {
       manualEpsGrowth: body.manualEpsGrowth ?? null,
       lastManualUpdateAt: now,
       lastSyncedAt: null,
+      plaidAccountId: null,
+      syncSource: 'manual',
+      lastPlaidSyncAt: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -513,6 +616,13 @@ router.post('/:id/refresh', async (req: Request, res: Response) => {
         exchange: stock.exchange ?? metrics.exchange,
         sector: stock.sector ?? metrics.sector,
         industry: stock.industry ?? metrics.industry,
+        // Update manual override fields from API so effectiveMetrics reflects fresh data
+        manualCurrentPrice: metrics.currentPrice ?? stock.manualCurrentPrice,
+        manualTargetPrice: metrics.analystTargetPrice ?? stock.manualTargetPrice,
+        manualPeRatio: metrics.peRatio ?? stock.manualPeRatio,
+        manualPbRatio: metrics.pbRatio ?? stock.manualPbRatio,
+        manualPsRatio: metrics.psRatio ?? stock.manualPsRatio,
+        manualEpsGrowth: metrics.epsGrowth ?? stock.manualEpsGrowth,
         lastSyncedAt: now,
         updatedAt: now,
       };
@@ -520,7 +630,10 @@ router.post('/:id/refresh', async (req: Request, res: Response) => {
       const didChange = enrichedUpdate.exchange !== stock.exchange
         || enrichedUpdate.sector !== stock.sector
         || enrichedUpdate.industry !== stock.industry
-        || enrichedUpdate.companyName !== stock.companyName;
+        || enrichedUpdate.companyName !== stock.companyName
+        || enrichedUpdate.manualCurrentPrice !== stock.manualCurrentPrice
+        || enrichedUpdate.manualTargetPrice !== stock.manualTargetPrice
+        || enrichedUpdate.manualPeRatio !== stock.manualPeRatio;
 
       if (didChange) {
         const updatedStock: Stock = { ...stock, ...enrichedUpdate };

@@ -2,11 +2,17 @@ import axios from 'axios';
 import type {
   AgentMessage,
   CreateStockRequest,
+  LotSummary,
+  MetricsHistoryPoint,
+  PlaidConnection,
+  PlaidHoldingPreview,
+  PlaidSyncResult,
   RefreshStockResponse,
   Stock,
   StockDetail,
   StockLookupResponse,
   StockPreset,
+  StockTransaction,
   StockVersion,
   StocksDashboardResponse,
   StocksHomeSummary,
@@ -28,6 +34,24 @@ export const fetchStockPresets = () => api.get<StockPreset[]>('/presets').then((
 export const createStockPreset = (data: Omit<StockPreset, 'id' | 'createdAt' | 'builtIn'>) => api.post<StockPreset>('/presets', data).then((r) => r.data);
 export const updateStockPreset = (id: string, data: Partial<StockPreset>) => api.put<StockPreset>(`/presets/${id}`, data).then((r) => r.data);
 export const deleteStockPreset = (id: string) => api.delete(`/presets/${id}`).then((r) => r.data);
+
+// ── Plaid Brokerage ──
+
+export const createPlaidLinkToken = () => api.post<{ linkToken: string }>('/plaid/link-token').then((r) => r.data.linkToken);
+export const exchangePlaidToken = (publicToken: string, institutionId?: string) =>
+  api.post('/plaid/exchange', { publicToken, institutionId }).then((r) => r.data);
+export const previewPlaidHoldings = (connectionId: string) =>
+  api.post<PlaidHoldingPreview[]>(`/plaid/preview/${connectionId}`).then((r) => r.data);
+export const syncPlaidConnection = (connectionId: string, symbols: string[]) =>
+  api.post<PlaidSyncResult>(`/plaid/sync/${connectionId}`, { symbols }).then((r) => r.data);
+export const fetchPlaidConnections = () => api.get<PlaidConnection[]>('/plaid/connections').then((r) => r.data);
+export const deletePlaidConnection = (id: string) => api.delete(`/plaid/connections/${id}`).then((r) => r.data);
+
+// ── Transactions & Lots ──
+
+export const fetchStockTransactions = (id: string) => api.get<StockTransaction[]>(`/${id}/transactions`).then((r) => r.data);
+export const fetchStockLots = (id: string) => api.get<LotSummary[]>(`/${id}/lots`).then((r) => r.data);
+export const fetchStockMetricsHistory = (id: string) => api.get<MetricsHistoryPoint[]>(`/${id}/metrics-history`).then((r) => r.data);
 
 // ── Agent streaming ──
 

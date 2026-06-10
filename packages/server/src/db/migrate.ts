@@ -158,7 +158,59 @@ export function runMigrations() {
     CREATE INDEX IF NOT EXISTS idx_stocks_updated_at ON stocks(updated_at);
     CREATE INDEX IF NOT EXISTS idx_stock_versions_stock ON stock_versions(stock_id);
     CREATE INDEX IF NOT EXISTS idx_stock_versions_created_at ON stock_versions(created_at);
+
+    -- Plaid Brokerage Integration
+    CREATE TABLE IF NOT EXISTS plaid_connections (
+      id TEXT PRIMARY KEY,
+      institution_name TEXT NOT NULL,
+      institution_id TEXT NOT NULL,
+      access_token TEXT NOT NULL,
+      item_id TEXT NOT NULL,
+      accounts_json TEXT,
+      last_synced_at TEXT,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_plaid_item ON plaid_connections(item_id);
+
+    CREATE TABLE IF NOT EXISTS stock_lots (
+      id TEXT PRIMARY KEY,
+      stock_id TEXT NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
+      connection_id TEXT REFERENCES plaid_connections(id) ON DELETE SET NULL,
+      plaid_transaction_id TEXT,
+      buy_date TEXT NOT NULL,
+      quantity REAL NOT NULL,
+      original_quantity REAL NOT NULL,
+      price_cents INTEGER NOT NULL,
+      fees_cents INTEGER NOT NULL DEFAULT 0,
+      source TEXT NOT NULL DEFAULT 'manual' CHECK(source IN ('plaid', 'manual')),
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_stock_lots_stock ON stock_lots(stock_id);
+    CREATE INDEX IF NOT EXISTS idx_stock_lots_buy_date ON stock_lots(buy_date);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_stock_lots_plaid_txn ON stock_lots(plaid_transaction_id);
+
+    CREATE TABLE IF NOT EXISTS stock_transactions (
+      id TEXT PRIMARY KEY,
+      stock_id TEXT NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
+      connection_id TEXT REFERENCES plaid_connections(id) ON DELETE SET NULL,
+      plaid_transaction_id TEXT,
+      type TEXT NOT NULL CHECK(type IN ('buy', 'sell', 'dividend', 'transfer', 'fee')),
+      date TEXT NOT NULL,
+      quantity REAL NOT NULL,
+      price_cents INTEGER NOT NULL,
+      amount_cents INTEGER NOT NULL,
+      fees_cents INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_stock_txns_stock ON stock_transactions(stock_id);
+    CREATE INDEX IF NOT EXISTS idx_stock_txns_date ON stock_transactions(date);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_stock_txns_plaid_txn ON stock_transactions(plaid_transaction_id);
   `);
+
+  // -- Inline column migrations --
 
   ensureColumn('stock_metrics_cache', 'open_price', 'INTEGER');
   ensureColumn('stock_metrics_cache', 'high_price', 'INTEGER');
@@ -182,4 +234,9 @@ export function runMigrations() {
   ensureColumn('stock_metrics_cache', 'shares_outstanding', 'REAL');
   ensureColumn('stock_metrics_cache', 'revenue_ttm', 'REAL');
   ensureColumn('stock_metrics_cache', 'gross_profit_ttm', 'REAL');
+
+  // Plaid integration columns on stocks
+  ensureColumn('stocks', 'plaid_account_id', 'TEXT');
+  ensureColumn('stocks', 'sync_source', "TEXT DEFAULT 'manual'");
+  ensureColumn('stocks', 'last_plaid_sync_at', 'TEXT');
 }
