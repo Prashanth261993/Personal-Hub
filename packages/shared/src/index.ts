@@ -562,6 +562,18 @@ export interface PlaidHoldingPreview {
   accountId: string;
 }
 
+/** A single data point in the metrics history time series */
+export interface MetricsHistoryPoint {
+  date: string;                   // YYYY-MM-DD
+  source: string;
+  currentPrice: number | null;    // cents
+  targetPrice: number | null;     // cents
+  peRatio: number | null;
+  pbRatio: number | null;
+  psRatio: number | null;
+  epsGrowth: number | null;       // percentage
+}
+
 // ── Stocks Agent Types ──
 
 export interface AgentMessage {

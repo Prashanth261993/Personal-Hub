@@ -3,6 +3,7 @@ import type {
   AgentMessage,
   CreateStockRequest,
   LotSummary,
+  MetricsHistoryPoint,
   PlaidConnection,
   PlaidHoldingPreview,
   PlaidSyncResult,
@@ -50,6 +51,7 @@ export const deletePlaidConnection = (id: string) => api.delete(`/plaid/connecti
 
 export const fetchStockTransactions = (id: string) => api.get<StockTransaction[]>(`/${id}/transactions`).then((r) => r.data);
 export const fetchStockLots = (id: string) => api.get<LotSummary[]>(`/${id}/lots`).then((r) => r.data);
+export const fetchStockMetricsHistory = (id: string) => api.get<MetricsHistoryPoint[]>(`/${id}/metrics-history`).then((r) => r.data);
 
 // ── Agent streaming ──
 

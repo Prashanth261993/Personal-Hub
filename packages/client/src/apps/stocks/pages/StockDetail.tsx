@@ -3,8 +3,10 @@ import { ArrowLeft, Clock3, RefreshCw, TrendingUp, TrendingDown, ArrowDownCircle
 import { useNavigate, useParams } from 'react-router-dom';
 import { formatCurrency, formatPercent } from '@networth/shared';
 import type { LotSummary, StockTransaction } from '@networth/shared';
-import { fetchStock, refreshStock, updateStock, fetchStockLots, fetchStockTransactions } from '../api';
+import { fetchStock, refreshStock, updateStock, fetchStockLots, fetchStockTransactions, fetchStockMetricsHistory } from '../api';
 import StockEditor from '../components/StockEditor';
+import PriceTargetChart from '../components/PriceTargetChart';
+import MetricExplorer from '../components/MetricExplorer';
 import { useStocksTheme } from '../useStocksTheme';
 
 function formatMetric(value: number | null, prefix = '') {
@@ -63,6 +65,12 @@ export default function StockDetail() {
   const { data: transactions } = useQuery({
     queryKey: ['stock-transactions', stockId],
     queryFn: () => fetchStockTransactions(stockId),
+    enabled: Boolean(stockId),
+  });
+
+  const { data: metricsHistory } = useQuery({
+    queryKey: ['stock-metrics-history', stockId],
+    queryFn: () => fetchStockMetricsHistory(stockId),
     enabled: Boolean(stockId),
   });
 
@@ -142,6 +150,22 @@ export default function StockDetail() {
             </div>
           </div>
       </div>
+
+      {/* Analytics Charts */}
+      {metricsHistory && metricsHistory.length > 0 && (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="stocks-panel">
+            <p className="stocks-eyebrow">Price History</p>
+            <h2 className="stocks-panel-title mb-4">Share Price vs Target</h2>
+            <PriceTargetChart data={metricsHistory} />
+          </div>
+          <div className="stocks-panel">
+            <p className="stocks-eyebrow">Metric Trends</p>
+            <h2 className="stocks-panel-title mb-4">Metric Explorer</h2>
+            <MetricExplorer data={metricsHistory} />
+          </div>
+        </div>
+      )}
 
       <StockEditor
         stock={stock}

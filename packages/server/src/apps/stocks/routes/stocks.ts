@@ -391,6 +391,43 @@ router.get('/:id/lots', (req: Request, res: Response) => {
   }
 });
 
+router.get('/:id/metrics-history', (req: Request, res: Response) => {
+  try {
+    const stock = db.select().from(stocks).where(eq(stocks.id, paramId(req))).get();
+    if (!stock) { res.status(404).json({ error: 'Stock not found' }); return; }
+
+    const versions = db.select().from(stockVersions)
+      .where(eq(stockVersions.stockId, stock.id))
+      .orderBy(stockVersions.createdAt)
+      .all();
+
+    const points = versions.map((v) => {
+      const p = JSON.parse(v.payload) as StockVersionPayload;
+      return {
+        date: v.createdAt.split('T')[0],
+        source: v.source,
+        currentPrice: p.manualCurrentPrice,
+        targetPrice: p.manualTargetPrice,
+        peRatio: p.manualPeRatio,
+        pbRatio: p.manualPbRatio,
+        psRatio: p.manualPsRatio,
+        epsGrowth: p.manualEpsGrowth,
+      };
+    });
+
+    // Deduplicate by date — keep latest entry per date
+    const byDate = new Map<string, typeof points[number]>();
+    for (const p of points) {
+      byDate.set(p.date, p);
+    }
+
+    res.json(Array.from(byDate.values()));
+  } catch (err) {
+    console.error('Error fetching metrics history:', err);
+    res.status(500).json({ error: 'Failed to fetch metrics history' });
+  }
+});
+
 router.get('/:id', (req: Request, res: Response) => {
   try {
     const stock = db.select().from(stocks).where(eq(stocks.id, paramId(req))).get();
