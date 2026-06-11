@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Wallet, ListTodo, ArrowRight, LineChart } from 'lucide-react';
+import { Wallet, ListTodo, ArrowRight, LineChart, Building2 } from 'lucide-react';
 import { fetchInsightsSummary } from '../apps/networth/api';
 import { fetchStats as fetchTodoStats } from '../apps/todo/api';
 import { fetchStocksSummary } from '../apps/stocks/api';
+import { fetchFundsSummary } from '../apps/funds/api';
 import { formatCurrency, formatPercent } from '@networth/shared';
 
 export default function Home() {
@@ -20,6 +21,11 @@ export default function Home() {
   const { data: stocksSummary } = useQuery({
     queryKey: ['stocks-summary'],
     queryFn: fetchStocksSummary,
+  });
+
+  const { data: fundsSummary } = useQuery({
+    queryKey: ['funds-summary'],
+    queryFn: fetchFundsSummary,
   });
 
   return (
@@ -128,6 +134,42 @@ export default function Home() {
           ) : (
             <div className="pt-3 border-t border-gray-100">
               <p className="text-sm text-gray-400">Get started by adding your first stock research record</p>
+            </div>
+          )}
+        </Link>
+
+        {/* Funds Card */}
+        <Link
+          to="/funds"
+          className="bg-white rounded-xl border border-gray-200 p-6 hover:border-amber-300 hover:shadow-md transition-all group"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center">
+              <Building2 className="w-6 h-6 text-amber-600" />
+            </div>
+            <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-amber-500 transition-colors" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">Hedge Fund 13F</h3>
+          <p className="text-sm text-gray-500 mb-4">Track institutional managers' quarterly holdings from SEC EDGAR.</p>
+          {fundsSummary ? (
+            <div className="pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-400 mb-1">Tracked Funds</p>
+                  <p className="text-xl font-bold text-gray-900">{fundsSummary.trackedCount}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-400 mb-1">Total Positions</p>
+                  <p className="text-xl font-bold text-gray-900">{fundsSummary.totalPositions}</p>
+                </div>
+              </div>
+              {fundsSummary.refreshedTodayCount > 0 && (
+                <p className="text-xs text-amber-600 mt-2">{fundsSummary.refreshedTodayCount} refreshed today</p>
+              )}
+            </div>
+          ) : (
+            <div className="pt-3 border-t border-gray-100">
+              <p className="text-sm text-gray-400">Get started by tracking a fund by CIK</p>
             </div>
           )}
         </Link>

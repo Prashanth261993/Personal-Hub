@@ -2,7 +2,7 @@
 
 ## Overview
 
-Personal productivity platform with modular sub-applications. React SPA frontend + Express/SQLite backend in an npm workspaces monorepo. Single-user, local-first — no authentication. Ships with a **Net Worth Tracker**, a **Stocks** research workspace, and an **ultra-modern Todo / Planning** app.
+Personal productivity platform with modular sub-applications. React SPA frontend + Express/SQLite backend in an npm workspaces monorepo. Single-user, local-first — no authentication. Ships with a **Net Worth Tracker**, a **Stocks** research workspace, an **ultra-modern Todo / Planning** app, and a **Funds** 13F filing tracker (free SEC EDGAR data).
 
 ## Project Structure
 
@@ -13,6 +13,8 @@ PersonalHub/
 │   │   ├── family-members.json
 │   │   ├── categories.json
 │   │   └── goals.json
+│   ├── stocks/               # Stocks dashboard presets
+│   ├── funds/                # Funds 13F seed list (seed.json — famous investors)
 │   └── todo/                # (reserved for future todo configs)
 ├── data/                    # SQLite DBs (gitignored)
 ├── packages/
@@ -21,7 +23,8 @@ PersonalHub/
 │   │   └── src/
 │   │       ├── apps/
 │   │       │   ├── networth/ # Net Worth route aggregator + routes/
-│   │       │   ├── stocks/   # Stocks dashboard/detail routes, Alpha Vantage helper, MCP agent, presets
+│   │       │   ├── stocks/   # Stocks dashboard/detail routes, Alpha Vantage helper, MCP agent, presets, Plaid brokerage
+│   │       │   ├── funds/    # Funds routes (funds, screener), SEC EDGAR client (lib/secEdgar.ts), seed
 │   │       │   └── todo/     # Todo routes (groups, todos, stats)
 │   │       ├── db/           # Drizzle ORM + SQLite setup
 │   │       └── lib/          # Shared server helpers (config.ts)
@@ -30,6 +33,7 @@ PersonalHub/
 │           ├── apps/
 │           │   ├── networth/ # Net Worth pages/ + api.ts
 │           │   ├── stocks/   # Stocks pages/, api.ts, theme hook, editor + Agent chat
+│           │   ├── funds/    # Funds pages/ (Dashboard, FundDetail, Screener) + api.ts
 │           │   └── todo/     # Todo pages/, api.ts + 16 components/
 │           ├── components/   # Platform-level (Layout, ConfirmModal, IconLookup)
 │           ├── lib/          # Shared client API (axios instance)
@@ -44,7 +48,7 @@ PersonalHub/
 - `npm run dev` — starts both server (tsx watch) and client (Vite) via concurrently (`--raw` mode to avoid tsx watch output buffering)
 - `npm run build` — builds all packages in dependency order
 - `npm run db:studio` — opens Drizzle Studio to browse the SQLite database
-- Copy `.env.example` to `.env` and set `ALPHA_VANTAGE_API_KEY` to enable manual stock metric refreshes. Set `GITHUB_MODELS_TOKEN` (GitHub PAT with `models:read`) to enable the Stock Research Agent. Server startup loads the repo root `.env` first, then `packages/server/.env`.
+- Copy `.env.example` to `.env` and set `ALPHA_VANTAGE_API_KEY` to enable manual stock metric refreshes. Set `GITHUB_MODELS_TOKEN` (GitHub PAT with `models:read`) to enable the Stock Research Agent. Set `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`, and `PLAID_ENCRYPTION_KEY` (64-char hex, used for AES-256-GCM token encryption) to enable Plaid brokerage sync. Server startup loads the repo root `.env` first, then `packages/server/.env`.
 
 ## Documentation Maintenance
 
@@ -110,16 +114,42 @@ Indexes on `group_id`, `parent_id`, `status`, `due_date`. Unique index on `(todo
 stocks:              id (TEXT PK), symbol (unique), company_name, exchange, sector, industry,
                      tracking_mode ('watchlist'|'holding'|'both'), status ('active'|'archived'),
                      thesis, notes_html, shares_milli, average_cost_basis, conviction,
-                     manual_* override fields, last_manual_update_at, last_synced_at, created_at, updated_at
+                     manual_* override fields, last_manual_update_at, last_synced_at,
+                     plaid_account_id, sync_source ('manual'|'plaid'), last_plaid_sync_at, created_at, updated_at
 stock_metrics_cache: id (TEXT PK), stock_id (FK→stocks CASCADE, unique), source, refresh_state,
                      current_price, analyst_target_price, pe_ratio, pb_ratio, ps_ratio,
                      eps_growth, market_cap, beta, analyst_rating, fetched_at, error_message,
                      created_at, updated_at
 stock_versions:      id (TEXT PK), stock_id (FK→stocks CASCADE), source ('manual'|'api-refresh'|'restore'),
                      payload (JSON TEXT), created_at
+plaid_connections:   id (TEXT PK), institution_name, institution_id, access_token (AES-256-GCM encrypted),
+                     item_id, accounts_json, last_synced_at, created_at
+stock_lots:          id (TEXT PK), stock_id (FK→stocks CASCADE), connection_id (FK→plaid_connections SET NULL),
+                     plaid_transaction_id, buy_date, quantity (remaining), original_quantity,
+                     price_cents, fees_cents, source ('plaid'|'manual'), created_at
+stock_transactions:  id (TEXT PK), stock_id (FK→stocks CASCADE), connection_id (FK→plaid_connections SET NULL),
+                     plaid_transaction_id, type ('buy'|'sell'|'dividend'|'transfer'|'fee'),
+                     date, quantity, price_cents, amount_cents, fees_cents, created_at
 ```
 
-Indexes on `symbol`, `tracking_mode`, `status`, `updated_at`, `stock_id`, and `created_at`.
+Indexes on `symbol`, `tracking_mode`, `status`, `updated_at`, `stock_id`, and `created_at`. Unique indexes on `plaid_connections.item_id`, `stock_lots.plaid_transaction_id`, and `stock_transactions.plaid_transaction_id`; additional indexes on `stock_lots`/`stock_transactions` `stock_id` and `buy_date`/`date`.
+
+### DB Schema (Funds)
+
+```
+funds:         id (TEXT PK), cik (10-digit zero-padded, unique), name,
+               status ('active'|'archived'), last_synced_at, created_at, updated_at
+fund_filings:  id (TEXT PK), fund_id (FK→funds CASCADE), accession_number (unique),
+               period_of_report (YYYY-MM-DD), quarter ('YYYY-Q#'), filed_at (YYYY-MM-DD),
+               total_value_cents (INTEGER), position_count (INTEGER), created_at
+fund_holdings: id (TEXT PK), filing_id (FK→fund_filings CASCADE), issuer_name, cusip,
+               ticker (nullable), stock_id (FK→stocks SET NULL, nullable),
+               value_cents (INTEGER), shares (INTEGER), put_call (nullable),
+               pct_of_portfolio (REAL), created_at
+cusip_map:     cusip (TEXT PK), ticker (TEXT), source ('auto'|'manual'), updated_at
+```
+
+Unique indexes on `funds.cik` and `fund_filings.accession_number`; indexes on `fund_holdings` `filing_id` and `stock_id`. `cusip_map` caches CUSIP→ticker resolutions so re-imports and manual links are reused across filings/funds.
 
 **Key design decisions:**
 - Subtasks are todos with `parentId` set (same table, max 1 level deep).
@@ -131,7 +161,7 @@ Indexes on `symbol`, `tracking_mode`, `status`, `updated_at`, `stock_id`, and `c
 ## Client Patterns (packages/client)
 
 - **React 19 + Vite + Tailwind CSS v4** with `@theme` custom properties for colors (primary=indigo, success=green, danger=red, warning=amber).
-- **TanStack Query v5** for all data fetching. Query keys are arrays: `['snapshots']`, `['snapshot', id]`, `['trends']`, `['insights-summary']`, `['goals']`, `['members']`, `['categories']`, `['todo-groups']`, `['todos']`, `['todo', id]`, `['todo-stats']`, `['todo-calendar', month]`, `['stocks-dashboard']`, `['stocks-summary']`, `['stock', id]`, `['stock-presets']`. Mutations invalidate related query keys on success.
+- **TanStack Query v5** for all data fetching. Query keys are arrays: `['snapshots']`, `['snapshot', id]`, `['trends']`, `['insights-summary']`, `['goals']`, `['members']`, `['categories']`, `['todo-groups']`, `['todos']`, `['todo', id]`, `['todo-stats']`, `['todo-calendar', month]`, `['stocks-dashboard']`, `['stocks-summary']`, `['stock', id]`, `['stock-presets']`, `['funds']`, `['fund', id]`, `['fund-holdings', id, filingId]`, `['fund-deltas', id]`, `['funds-summary']`, `['funds-screener']`. Mutations invalidate related query keys on success.
 - **Global toast notifications**: `react-hot-toast` with a global `MutationCache` in `main.tsx`. Mutations that set `meta: { successMessage: '...' }` get an automatic success toast. All mutation errors show an error toast by default. The `<Toaster>` is rendered in `App.tsx` at bottom-right with a dark theme.
 - **App-scoped API layer**: Each app has its own `api.ts` at `src/apps/<appName>/api.ts` with an axios instance (`baseURL: '/api/<appName>'`). Platform-level shared API at `src/lib/api.ts` (`baseURL: '/api'`).
 - **React Router v7** — Layout as parent route with `<Outlet />`. App pages are nested under `/<appName>/*`. Platform pages (Home, Help) are at root level.
@@ -186,6 +216,16 @@ Indexes on `symbol`, `tracking_mode`, `status`, `updated_at`, `stock_id`, and `c
 - **Stocks dashboard**: `/stocks` shows active tracked names, derived upside percentage, refresh state, and position value. Supports search, 18 sort options, sector filter, 9 range filters, and custom saved presets (`config/stocks/presets.json`).
 - **Custom presets**: CRUD API at `/api/stocks/presets`. Presets store filter/sort state in a JSON config file. Dashboard loads and applies presets from a dropdown.
 - **Stock Detail layout**: Metrics are displayed in a 3-column responsive grid (Trading Tape, Valuation, Growth). The StockEditor form fields sit below with a 2-column internal layout. The Research Journal is a full-width section below the form.
+- **Tax lots & transactions**: `GET /api/stocks/:id/lots` returns open lots (quantity > 0) with computed cost basis, current value, gain/loss, holding days, and an `isLongTerm` flag (> 365 days). `GET /api/stocks/:id/transactions` returns the imported transaction log. `GET /api/stocks/:id/metrics-history` derives a per-date metric time series from `stock_versions` (deduped, keeping the latest entry per date) for the `PriceTargetChart`/`MetricExplorer` components.
+- **Refresh writes overrides**: `POST /api/stocks/:id/refresh` now also copies fetched values into the `manual_*` override fields so effective metrics reflect fresh API data, appending an `api-refresh` version when price/target/PE change.
+
+### Stocks Brokerage (Plaid)
+- **Architecture**: Plaid routes mounted at `/api/stocks/plaid` (`packages/server/src/apps/stocks/routes/plaid.ts`); Plaid SDK wrapper + token encryption in `packages/server/src/apps/stocks/lib/plaidClient.ts`. Client page `packages/client/src/apps/stocks/pages/Brokerage.tsx` uses `react-plaid-link`.
+- **Flow**: `POST /plaid/link-token` → client opens Plaid Link → `POST /plaid/exchange` persists an encrypted connection → `POST /plaid/preview/:connectionId` lists holdings matched against active tracked symbols (no writes) → `POST /plaid/sync/:connectionId` with `{ symbols }` imports the selected names. `GET/DELETE /plaid/connections` manage connections (delete resets linked stocks to `sync_source='manual'`).
+- **Sync behavior**: Updates `shares_milli` and `average_cost_basis`, imports investment transactions from the last 2 years (deduped by `plaid_transaction_id`), creates a `stock_lots` row per buy, applies FIFO (oldest lot first) on sells, and recomputes average cost basis from remaining lots.
+- **Token security**: Plaid access tokens are AES-256-GCM encrypted at rest using `PLAID_ENCRYPTION_KEY` (64-char hex), stored as `iv:tag:ciphertext` hex. Never log or return decrypted tokens.
+- **Environment**: `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV` (`sandbox`|`production`), `PLAID_ENCRYPTION_KEY`.
+- **Server deps**: `plaid`. **Client deps**: `react-plaid-link`.
 
 ### Stocks Agent
 - **Architecture**: Express SSE endpoint (`POST /api/stocks/agent/chat`) → OpenAI SDK (pointed at GitHub Models `https://models.github.ai/inference`) → MCP client (stdio transport to `alpha-vantage-mcp-server` subprocess).
@@ -195,6 +235,17 @@ Indexes on `symbol`, `tracking_mode`, `status`, `updated_at`, `stock_id`, and `c
 - **Client streaming**: `streamAgentChat()` in `api.ts` uses native `fetch()` with `ReadableStream` to parse SSE (not axios, which doesn't support streaming).
 - **Environment**: `GITHUB_MODELS_TOKEN` (PAT with `models:read`), `AGENT_MODEL` (default `openai/gpt-4o-mini`), `AGENT_BASE_URL` (default `https://models.github.ai/inference`).
 - **Server deps**: `openai`, `@modelcontextprotocol/sdk`, `alpha-vantage-mcp-server`.
+
+### Funds (SEC 13F)
+- **Data source**: SEC EDGAR — free, no API key. The client (`packages/server/src/apps/funds/lib/secEdgar.ts`) sends a descriptive `User-Agent` (`PersonalHub/1.0`) and serializes all requests through a rate limiter (≤10 req/s, enforced min interval). 13F info-table XML is parsed with `fast-xml-parser`.
+- **Fund identity**: Funds are keyed by 10-digit zero-padded CIK. `config/funds/seed.json` ships a starter list of famous investors; `quarterFromPeriod()` derives the `YYYY-Q#` label from `period_of_report`.
+- **Value units rule**: 13F value amounts switched from thousands of dollars to whole dollars in 2023. `valueDollarMultiplier(periodOfReport)` returns `1000` for filings before `2023-01-01`, else `1`; `getInfoTableHoldings()` applies it so all stored `value_cents` are normalized to true dollars.
+- **Refresh & backfill**: `POST /api/funds/:id/refresh` is manual-only. It calls `getRecent13Fs(cik, limit)` (`BACKFILL_LIMIT=6`), processes filings oldest→newest, **skips already-imported accession numbers**, and inserts filings + holdings. A final link-backfill pass updates any holdings with a NULL `ticker` using the now-populated `cusip_map` (so a pre-existing latest filing also gets linked).
+- **Auto-linking**: `resolveLink()` checks `cusip_map` first, then falls back to `resolveTickerByName()` which matches the issuer against SEC `company_tickers.json` (24h TTL cache) using `normalizeName()` (uppercase, `&`→`AND`, strip punctuation + corporate suffixes). Resolved CUSIPs are cached as `source='auto'` rows. This is best-effort — unmatched issuers are expected and acceptable.
+- **Manual link**: `POST /api/funds/holdings/:holdingId/link` upserts a `source='manual'` `cusip_map` row and updates **all** holdings sharing that CUSIP, linking them to a tracked stock (`stock_id`) and/or `ticker`.
+- **QoQ deltas**: `GET /api/funds/:id/deltas?from=&to=` (defaults to the latest two filings) returns `HoldingDelta[]` classified as `new`/`add`/`trim`/`exit`/`hold` with signed share/value changes, sorted by `toValueCents` desc.
+- **Cross-fund screener**: `GET /api/funds/screener` aggregates each active fund's **latest** filing by CUSIP (collapsing duplicate manager rows), then accumulates across funds into `ScreenerRow[]` (`fundCount`, `totalValueCents`, `avgPctOfPortfolio`, per-fund refs). The screener router is mounted **before** the `/:id` route so `/screener` isn't captured as an id.
+- **Server deps**: `fast-xml-parser`.
 
 ## When Adding a New App
 

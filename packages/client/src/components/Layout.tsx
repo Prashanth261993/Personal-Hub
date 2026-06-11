@@ -17,6 +17,8 @@ import {
   LineChart,
   Bot,
   Landmark,
+  Building2,
+  Layers,
 } from 'lucide-react';
 
 interface NavApp {
@@ -60,6 +62,16 @@ const apps: NavApp[] = [
       { to: '/stocks/new', label: 'Add Stock', icon: CirclePlus },
       { to: '/stocks/agent', label: 'Agent', icon: Bot },
       { to: '/stocks/brokerage', label: 'Brokerage', icon: Landmark },
+    ],
+  },
+  {
+    id: 'funds',
+    label: 'Funds',
+    icon: Building2,
+    basePath: '/funds',
+    children: [
+      { to: '/funds', label: 'Dashboard', icon: LayoutDashboard },
+      { to: '/funds/screener', label: 'Screener', icon: Layers },
     ],
   },
 ];

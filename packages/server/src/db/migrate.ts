@@ -208,6 +208,60 @@ export function runMigrations() {
     CREATE INDEX IF NOT EXISTS idx_stock_txns_stock ON stock_transactions(stock_id);
     CREATE INDEX IF NOT EXISTS idx_stock_txns_date ON stock_transactions(date);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_stock_txns_plaid_txn ON stock_transactions(plaid_transaction_id);
+
+    -- Funds App Tables (SEC 13F)
+    CREATE TABLE IF NOT EXISTS funds (
+      id TEXT PRIMARY KEY,
+      cik TEXT NOT NULL,
+      name TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'archived')),
+      last_synced_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_funds_cik ON funds(cik);
+
+    CREATE TABLE IF NOT EXISTS fund_filings (
+      id TEXT PRIMARY KEY,
+      fund_id TEXT NOT NULL REFERENCES funds(id) ON DELETE CASCADE,
+      accession_number TEXT NOT NULL,
+      period_of_report TEXT NOT NULL,
+      quarter TEXT NOT NULL,
+      filed_at TEXT NOT NULL,
+      total_value_cents INTEGER NOT NULL DEFAULT 0,
+      position_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_fund_filings_accession ON fund_filings(accession_number);
+    CREATE INDEX IF NOT EXISTS idx_fund_filings_fund ON fund_filings(fund_id);
+    CREATE INDEX IF NOT EXISTS idx_fund_filings_quarter ON fund_filings(quarter);
+
+    CREATE TABLE IF NOT EXISTS fund_holdings (
+      id TEXT PRIMARY KEY,
+      filing_id TEXT NOT NULL REFERENCES fund_filings(id) ON DELETE CASCADE,
+      issuer_name TEXT NOT NULL,
+      cusip TEXT NOT NULL,
+      ticker TEXT,
+      stock_id TEXT REFERENCES stocks(id) ON DELETE SET NULL,
+      value_cents INTEGER NOT NULL DEFAULT 0,
+      shares INTEGER NOT NULL DEFAULT 0,
+      put_call TEXT,
+      pct_of_portfolio REAL NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_fund_holdings_filing ON fund_holdings(filing_id);
+    CREATE INDEX IF NOT EXISTS idx_fund_holdings_cusip ON fund_holdings(cusip);
+    CREATE INDEX IF NOT EXISTS idx_fund_holdings_stock ON fund_holdings(stock_id);
+
+    CREATE TABLE IF NOT EXISTS cusip_map (
+      cusip TEXT PRIMARY KEY,
+      ticker TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'auto',
+      updated_at TEXT NOT NULL
+    );
   `);
 
   // -- Inline column migrations --

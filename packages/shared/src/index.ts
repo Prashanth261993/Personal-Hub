@@ -585,6 +585,156 @@ export interface AgentChatRequest {
   messages: AgentMessage[];
 }
 
+// ── Funds App Types (SEC 13F) ──
+
+export type FundStatus = 'active' | 'archived';
+
+/** A tracked institutional manager, identified by its SEC CIK. */
+export interface Fund {
+  id: string;
+  cik: string;              // 10-digit zero-padded Central Index Key
+  name: string;
+  status: FundStatus;
+  lastSyncedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A single 13F-HR filing for a fund (one per quarter). */
+export interface FundFiling {
+  id: string;
+  fundId: string;
+  accessionNumber: string;  // SEC accession, e.g. 0001067983-25-000012
+  periodOfReport: string;   // YYYY-MM-DD (quarter end)
+  quarter: string;          // 'YYYY-Q#'
+  filedAt: string;          // YYYY-MM-DD
+  totalValueCents: number;  // sum of all holding values, in cents
+  positionCount: number;
+  createdAt: string;
+}
+
+/** A single position within a 13F filing's information table. */
+export interface FundHolding {
+  id: string;
+  filingId: string;
+  issuerName: string;
+  cusip: string;
+  ticker: string | null;        // best-effort mapping (Phase 2)
+  stockId: string | null;       // cross-link to stocks table (Phase 2)
+  valueCents: number;
+  shares: number;
+  putCall: string | null;       // 'Put' | 'Call' | null
+  pctOfPortfolio: number;       // value / filing total × 100
+  createdAt: string;
+}
+
+/** Dashboard row: a fund with a summary of its latest filing. */
+export interface FundsDashboardRow {
+  id: string;
+  cik: string;
+  name: string;
+  status: FundStatus;
+  lastSyncedAt: string | null;
+  latestQuarter: string | null;
+  latestPeriodOfReport: string | null;
+  totalValueCents: number | null;
+  positionCount: number | null;
+  topHoldingName: string | null;
+}
+
+export interface FundDetailResponse {
+  fund: Fund;
+  filings: FundFiling[];
+  latestFiling: FundFiling | null;
+  holdings: FundHolding[];      // holdings for latestFiling (or empty)
+}
+
+export interface FundsHomeSummary {
+  trackedCount: number;
+  totalPositions: number;
+  refreshedTodayCount: number;
+}
+
+export interface RefreshFundResponse {
+  fund: Fund;
+  filing: FundFiling | null;
+  holdingsCount: number;
+  message: string;
+}
+
+export interface CreateFundRequest {
+  cik: string;
+  name?: string;
+}
+
+/** Seed entry in config/funds/seed.json */
+export interface FundSeedEntry {
+  cik: string;
+  name: string;
+}
+
+export interface FundSeedConfig {
+  funds: FundSeedEntry[];
+}
+
+// ── Funds App Types: Phase 2 (deltas + cross-link) ──
+
+export type HoldingChangeType = 'new' | 'add' | 'trim' | 'exit' | 'hold';
+
+/** A quarter-over-quarter change for one position (aggregated per CUSIP). */
+export interface HoldingDelta {
+  cusip: string;
+  issuerName: string;
+  ticker: string | null;
+  stockId: string | null;
+  changeType: HoldingChangeType;
+  fromShares: number;
+  toShares: number;
+  sharesChange: number;
+  sharesChangePercent: number | null; // null when fromShares is 0 (new position)
+  fromValueCents: number;
+  toValueCents: number;
+  valueChangeCents: number;
+  toPctOfPortfolio: number;
+}
+
+export interface FundDeltasResponse {
+  fromFiling: FundFiling | null;
+  toFiling: FundFiling | null;
+  deltas: HoldingDelta[];
+}
+
+/** Map a 13F holding to a tracked stock (manual confirmation). */
+export interface LinkHoldingRequest {
+  stockId?: string;
+  ticker?: string;
+}
+
+// ── Funds App Types: Phase 3 (cross-fund screener) ──
+
+export interface ScreenerFundRef {
+  fundId: string;
+  fundName: string;
+  valueCents: number;
+  pctOfPortfolio: number;
+}
+
+/** One issuer aggregated across the latest filing of every tracked fund. */
+export interface ScreenerRow {
+  cusip: string;
+  issuerName: string;
+  ticker: string | null;
+  stockId: string | null;
+  fundCount: number;
+  totalValueCents: number;
+  avgPctOfPortfolio: number;
+  funds: ScreenerFundRef[];
+}
+
+export interface FundsScreenerResponse {
+  rows: ScreenerRow[];
+}
+
 // ── Platform Types ──
 
 export interface AppDefinition {

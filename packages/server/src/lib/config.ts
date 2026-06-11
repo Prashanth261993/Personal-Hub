@@ -1,13 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import type { FamilyMembersConfig, CategoriesConfig, GoalsConfig, StockPresetsConfig } from '@networth/shared';
+import type { FamilyMembersConfig, CategoriesConfig, GoalsConfig, StockPresetsConfig, FundSeedConfig } from '@networth/shared';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const configDir = path.resolve(__dirname, '..', '..', '..', '..', 'config', 'networth');
 const stocksConfigDir = path.resolve(__dirname, '..', '..', '..', '..', 'config', 'stocks');
+const fundsConfigDir = path.resolve(__dirname, '..', '..', '..', '..', 'config', 'funds');
 
 function readJson<T>(filePath: string): T {
   const raw = fs.readFileSync(filePath, 'utf-8');
@@ -24,6 +25,10 @@ function networthFile(filename: string): string {
 
 function stocksFile(filename: string): string {
   return path.join(stocksConfigDir, filename);
+}
+
+function fundsFile(filename: string): string {
+  return path.join(fundsConfigDir, filename);
 }
 
 export function getMembers(): FamilyMembersConfig {
@@ -56,4 +61,8 @@ export function getStockPresets(): StockPresetsConfig {
 
 export function saveStockPresets(config: StockPresetsConfig): void {
   writeJson(stocksFile('presets.json'), config);
+}
+
+export function getFundSeed(): FundSeedConfig {
+  return readJson<FundSeedConfig>(fundsFile('seed.json'));
 }

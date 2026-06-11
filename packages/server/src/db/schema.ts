@@ -200,3 +200,57 @@ export const stockTransactions = sqliteTable('stock_transactions', {
 }, (table) => ([
   uniqueIndex('idx_stock_txns_plaid_txn').on(table.plaidTransactionId),
 ]));
+
+// ── Funds App Tables (SEC 13F) ──
+
+export const funds = sqliteTable('funds', {
+  id: text('id').primaryKey(),
+  cik: text('cik').notNull(),               // 10-digit zero-padded CIK
+  name: text('name').notNull(),
+  status: text('status', { enum: ['active', 'archived'] }).notNull().default('active'),
+  lastSyncedAt: text('last_synced_at'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, (table) => ([
+  uniqueIndex('idx_funds_cik').on(table.cik),
+]));
+
+export const fundFilings = sqliteTable('fund_filings', {
+  id: text('id').primaryKey(),
+  fundId: text('fund_id')
+    .notNull()
+    .references(() => funds.id, { onDelete: 'cascade' }),
+  accessionNumber: text('accession_number').notNull(),
+  periodOfReport: text('period_of_report').notNull(),  // YYYY-MM-DD
+  quarter: text('quarter').notNull(),                  // 'YYYY-Q#'
+  filedAt: text('filed_at').notNull(),                 // YYYY-MM-DD
+  totalValueCents: integer('total_value_cents').notNull().default(0),
+  positionCount: integer('position_count').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+}, (table) => ([
+  uniqueIndex('idx_fund_filings_accession').on(table.accessionNumber),
+]));
+
+export const fundHoldings = sqliteTable('fund_holdings', {
+  id: text('id').primaryKey(),
+  filingId: text('filing_id')
+    .notNull()
+    .references(() => fundFilings.id, { onDelete: 'cascade' }),
+  issuerName: text('issuer_name').notNull(),
+  cusip: text('cusip').notNull(),
+  ticker: text('ticker'),
+  stockId: text('stock_id')
+    .references(() => stocks.id, { onDelete: 'set null' }),
+  valueCents: integer('value_cents').notNull().default(0),
+  shares: integer('shares').notNull().default(0),
+  putCall: text('put_call'),
+  pctOfPortfolio: real('pct_of_portfolio').notNull().default(0),
+  createdAt: text('created_at').notNull(),
+});
+
+export const cusipMap = sqliteTable('cusip_map', {
+  cusip: text('cusip').primaryKey(),
+  ticker: text('ticker').notNull(),
+  source: text('source', { enum: ['auto', 'manual'] }).notNull().default('auto'),
+  updatedAt: text('updated_at').notNull(),
+});
