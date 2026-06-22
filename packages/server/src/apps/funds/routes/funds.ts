@@ -14,6 +14,7 @@ import type {
   HoldingDelta,
   LinkHoldingRequest,
   RefreshFundResponse,
+  UpdateFundRequest,
 } from '@networth/shared';
 import { db } from '../../../db/index.js';
 import { cusipMap, funds, fundFilings, fundHoldings, stocks } from '../../../db/schema.js';
@@ -138,13 +139,7 @@ router.get('/', (_req: Request, res: Response) => {
       let topHoldingName: string | null = null;
 
       if (latest) {
-        const top = db
-          .select()
-          .from(fundHoldings)
-          .where(eq(fundHoldings.filingId, latest.id))
-          .orderBy(desc(fundHoldings.valueCents))
-          .limit(1)
-          .get();
+        const top = getAggregatedHoldings(latest.id)[0];
         topHoldingName = top?.issuerName ?? null;
       }
 
@@ -231,6 +226,46 @@ router.post('/', (req: Request, res: Response) => {
   }
 });
 
+// PATCH /api/funds/:id — edit a fund's name / status
+router.patch('/:id', (req: Request, res: Response) => {
+  try {
+    const fund = db.select().from(funds).where(eq(funds.id, paramId(req))).get();
+    if (!fund) {
+      res.status(404).json({ error: 'Fund not found' });
+      return;
+    }
+
+    const body = req.body as UpdateFundRequest;
+    const updates: Partial<typeof funds.$inferInsert> = {};
+
+    if (typeof body.name === 'string') {
+      const name = body.name.trim();
+      if (!name) {
+        res.status(400).json({ error: 'name cannot be empty' });
+        return;
+      }
+      updates.name = name;
+    }
+    if (body.status === 'active' || body.status === 'archived') {
+      updates.status = body.status;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: 'Nothing to update' });
+      return;
+    }
+
+    updates.updatedAt = new Date().toISOString();
+    db.update(funds).set(updates).where(eq(funds.id, fund.id)).run();
+
+    const updated = db.select().from(funds).where(eq(funds.id, fund.id)).get()!;
+    res.json(rowToFund(updated));
+  } catch (err) {
+    console.error('Error updating fund:', err);
+    res.status(500).json({ error: 'Failed to update fund' });
+  }
+});
+
 // GET /api/funds/:id — fund + filings + latest holdings
 router.get('/:id', (req: Request, res: Response) => {
   try {
@@ -248,20 +283,13 @@ router.get('/:id', (req: Request, res: Response) => {
       .all();
 
     const latest = filingRows[0];
-    const holdings = latest
-      ? db
-          .select()
-          .from(fundHoldings)
-          .where(eq(fundHoldings.filingId, latest.id))
-          .orderBy(desc(fundHoldings.valueCents))
-          .all()
-      : [];
+    const holdings = latest ? getAggregatedHoldings(latest.id) : [];
 
     const response: FundDetailResponse = {
       fund: rowToFund(fund),
       filings: filingRows.map(rowToFiling),
       latestFiling: latest ? rowToFiling(latest) : null,
-      holdings: holdings.map(rowToHolding),
+      holdings,
     };
     res.json(response);
   } catch (err) {
@@ -293,14 +321,7 @@ router.get('/:id/holdings', (req: Request, res: Response) => {
       return;
     }
 
-    const holdings = db
-      .select()
-      .from(fundHoldings)
-      .where(eq(fundHoldings.filingId, filing.id))
-      .orderBy(desc(fundHoldings.valueCents))
-      .all();
-
-    res.json(holdings.map(rowToHolding));
+    res.json(getAggregatedHoldings(filing.id));
   } catch (err) {
     console.error('Error fetching holdings:', err);
     res.status(500).json({ error: 'Failed to fetch holdings' });
@@ -475,6 +496,41 @@ function aggregateFilingHoldings(filingId: string): Map<string, AggregatedPositi
     }
   }
   return map;
+}
+
+/**
+ * Aggregate a filing's raw rows into one holding per security so duplicate manager
+ * rows (the same CUSIP listed across multiple accounts) collapse into a single line.
+ * Share positions and option positions (put/call) on the same CUSIP stay separate.
+ * Returns `FundHolding[]` (the first row of each group is the representative id used
+ * for manual linking) sorted by value descending.
+ */
+function getAggregatedHoldings(filingId: string): FundHolding[] {
+  const rows = db
+    .select()
+    .from(fundHoldings)
+    .where(eq(fundHoldings.filingId, filingId))
+    .orderBy(desc(fundHoldings.valueCents))
+    .all();
+
+  const map = new Map<string, FundHolding>();
+  for (const r of rows) {
+    const key = `${r.cusip || r.issuerName}|${r.putCall ?? ''}`;
+    const existing = map.get(key);
+    if (existing) {
+      existing.shares += r.shares;
+      existing.valueCents += r.valueCents;
+      existing.pctOfPortfolio += r.pctOfPortfolio;
+      if (!existing.ticker && r.ticker) {
+        existing.ticker = r.ticker;
+        existing.stockId = r.stockId;
+      }
+    } else {
+      map.set(key, rowToHolding(r));
+    }
+  }
+
+  return [...map.values()].sort((a, b) => b.valueCents - a.valueCents);
 }
 
 // GET /api/funds/:id/deltas?from=&to= — quarter-over-quarter position changes

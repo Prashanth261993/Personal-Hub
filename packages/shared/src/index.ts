@@ -667,6 +667,11 @@ export interface CreateFundRequest {
   name?: string;
 }
 
+export interface UpdateFundRequest {
+  name?: string;
+  status?: FundStatus;
+}
+
 /** Seed entry in config/funds/seed.json */
 export interface FundSeedEntry {
   cik: string;
@@ -712,11 +717,32 @@ export interface LinkHoldingRequest {
 
 // ── Funds App Types: Phase 3 (cross-fund screener) ──
 
+/** Overall directional stance of a position once puts are treated as bearish. */
+export type PositionSentiment = 'bullish' | 'bearish' | 'mixed' | 'neutral';
+
 export interface ScreenerFundRef {
   fundId: string;
   fundName: string;
-  valueCents: number;
+  valueCents: number;            // total exposure (bullish + bearish), absolute
   pctOfPortfolio: number;
+  bullishValueCents: number;     // shares + calls
+  bearishValueCents: number;     // puts
+  changeType: HoldingChangeType | null;   // QoQ vs this fund's prior filing
+  sharesChangePercent: number | null;     // null when new or no prior filing
+  valueChangeCents: number | null;         // QoQ value delta (null when no prior filing)
+}
+
+/** Fundamental metrics, populated only for tracked stocks (else null fields). */
+export interface ScreenerMetrics {
+  currentPriceCents: number | null;
+  targetPriceCents: number | null;
+  upsidePct: number | null;      // (target - current) / current × 100
+  peRatio: number | null;
+  pbRatio: number | null;
+  psRatio: number | null;
+  epsGrowth: number | null;
+  marketCap: number | null;
+  beta: number | null;
 }
 
 /** One issuer aggregated across the latest filing of every tracked fund. */
@@ -725,14 +751,159 @@ export interface ScreenerRow {
   issuerName: string;
   ticker: string | null;
   stockId: string | null;
+  isTracked: boolean;
   fundCount: number;
-  totalValueCents: number;
-  avgPctOfPortfolio: number;
+  totalValueCents: number;       // bullish + bearish across funds
+  bullishValueCents: number;     // shares + calls across funds
+  bearishValueCents: number;     // puts across funds
+  sentiment: PositionSentiment;
+  avgPctOfPortfolio: number;     // avg of total pct across holding funds
+  convictionPct: number;         // avg long-share (bullish) pct only
+  // QoQ aggregates (computed on the fly from each fund's latest two filings)
+  fundsNew: number;
+  fundsAdded: number;
+  fundsTrimmed: number;
+  fundsExited: number;
+  fundsHold: number;
+  maxSharesChangePercent: number | null;  // largest single-fund stake increase (%)
+  maxValueChangeCents: number | null;      // largest single-fund stake increase ($)
+  netSharesChangePercent: number | null;  // aggregate share change across funds
+  metrics: ScreenerMetrics | null;        // null for untracked securities
   funds: ScreenerFundRef[];
 }
 
 export interface FundsScreenerResponse {
   rows: ScreenerRow[];
+}
+
+// ── Funds App Types: CUSIP → Ticker mappings ──
+
+/** An unmapped 13F security (no ticker resolved yet), aggregated across all funds/filings. */
+export interface UnmappedSecurity {
+  cusip: string;
+  issuerName: string;
+  holdingCount: number;     // raw fund_holdings rows referencing this cusip
+  fundCount: number;        // distinct funds holding it
+  totalValueCents: number;  // summed across the latest reference (best-effort)
+}
+
+/** An existing CUSIP → ticker mapping (cusip_map row) with a sample issuer name. */
+export interface CusipMapping {
+  cusip: string;
+  ticker: string;
+  source: 'auto' | 'manual';
+  updatedAt: string;
+  issuerName: string | null;  // representative issuer name from holdings, if any
+  stockId: string | null;     // linked tracked stock, if any
+}
+
+export interface FundsMappingsResponse {
+  unmapped: UnmappedSecurity[];
+  mapped: CusipMapping[];
+}
+
+/** Create/update a CUSIP → ticker mapping from the mapping page. */
+export interface UpsertMappingRequest {
+  cusip: string;
+  ticker: string;
+}
+
+// ── Funds App Types: screener presets ──
+
+export interface FundScreenerRangeFilter {
+  min: string;
+  max: string;
+}
+
+export type FundPositionTypeFilter = 'all' | 'shares' | 'calls' | 'puts';
+export type FundSentimentFilter = 'all' | PositionSentiment;
+
+export interface FundScreenerFilters {
+  search?: string;
+  minFunds?: number;
+  trackedOnly?: boolean;
+  sentiment?: FundSentimentFilter;
+  positionType?: FundPositionTypeFilter;
+  minStakeIncreasePct?: string;   // largest single-fund increase ≥ this %
+  upsidePct?: FundScreenerRangeFilter;
+  peRatio?: FundScreenerRangeFilter;
+  pbRatio?: FundScreenerRangeFilter;
+  psRatio?: FundScreenerRangeFilter;
+  epsGrowth?: FundScreenerRangeFilter;
+  marketCap?: FundScreenerRangeFilter;
+}
+
+export interface FundScreenerPreset {
+  id: string;
+  label: string;
+  description: string;
+  builtIn: boolean;
+  filters: FundScreenerFilters;
+  sortKey: string;
+  createdAt: string;
+}
+
+export interface FundScreenerPresetsConfig {
+  presets: FundScreenerPreset[];
+}
+
+// ── Funds App Types: Insights (cross-fund signals) ──
+
+/** One fund's move on a security, used inside consensus groupings. */
+export interface FundMoveRef {
+  fundId: string;
+  fundName: string;
+  changeType: HoldingChangeType;
+  sharesChangePercent: number | null;
+  valueChangeCents: number | null;   // QoQ value delta (null when no prior filing)
+  toValueCents: number;
+  toPctOfPortfolio: number;
+}
+
+/** A security that multiple funds moved the same direction on this quarter. */
+export interface ConsensusMove {
+  cusip: string;
+  issuerName: string;
+  ticker: string | null;
+  stockId: string | null;
+  isTracked: boolean;
+  fundCount: number;
+  totalValueCents: number;     // sum of toValueCents across the listed funds
+  funds: FundMoveRef[];
+}
+
+/** A single fund's high-conviction (large % of portfolio) position. */
+export interface ConcentratedBet {
+  cusip: string;
+  issuerName: string;
+  ticker: string | null;
+  stockId: string | null;
+  fundId: string;
+  fundName: string;
+  pctOfPortfolio: number;
+  valueCents: number;
+  sentiment: PositionSentiment;
+}
+
+/** Put (bearish) exposure on a security across funds. */
+export interface BearishSignal {
+  cusip: string;
+  issuerName: string;
+  ticker: string | null;
+  stockId: string | null;
+  fundCount: number;
+  putValueCents: number;
+  funds: { fundId: string; fundName: string; putValueCents: number }[];
+}
+
+export interface FundsInsightsResponse {
+  quarterLabel: string | null;     // representative latest quarter across funds
+  clusterBuys: ConsensusMove[];    // new or added by ≥2 funds
+  newConsensus: ConsensusMove[];   // brand-new positions in ≥2 funds
+  clusterExits: ConsensusMove[];   // exited or trimmed by ≥2 funds
+  bearishActivity: BearishSignal[];
+  concentratedBets: ConcentratedBet[];
+  trackedOverlap: ConsensusMove[]; // any fund move on a tracked stock
 }
 
 // ── Platform Types ──

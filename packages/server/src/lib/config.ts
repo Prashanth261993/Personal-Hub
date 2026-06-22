@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import type { FamilyMembersConfig, CategoriesConfig, GoalsConfig, StockPresetsConfig, FundSeedConfig } from '@networth/shared';
+import type { FamilyMembersConfig, CategoriesConfig, GoalsConfig, StockPresetsConfig, FundSeedConfig, FundScreenerPresetsConfig } from '@networth/shared';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,4 +65,12 @@ export function saveStockPresets(config: StockPresetsConfig): void {
 
 export function getFundSeed(): FundSeedConfig {
   return readJson<FundSeedConfig>(fundsFile('seed.json'));
+}
+
+export function getFundScreenerPresets(): FundScreenerPresetsConfig {
+  return readJson<FundScreenerPresetsConfig>(fundsFile('screener-presets.json'));
+}
+
+export function saveFundScreenerPresets(config: FundScreenerPresetsConfig): void {
+  writeJson(fundsFile('screener-presets.json'), config);
 }

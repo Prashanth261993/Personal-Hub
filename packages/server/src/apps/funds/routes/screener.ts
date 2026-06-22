@@ -1,8 +1,23 @@
 import { Router, Request, Response } from 'express';
-import { desc, eq } from 'drizzle-orm';
-import type { FundsScreenerResponse, ScreenerFundRef, ScreenerRow } from '@networth/shared';
+import { eq } from 'drizzle-orm';
+import type {
+  FundsScreenerResponse,
+  HoldingChangeType,
+  PositionSentiment,
+  ScreenerFundRef,
+  ScreenerMetrics,
+  ScreenerRow,
+} from '@networth/shared';
 import { db } from '../../../db/index.js';
-import { funds, fundFilings, fundHoldings } from '../../../db/schema.js';
+import { funds } from '../../../db/schema.js';
+import {
+  aggregateBySecurity,
+  buildMetricsMap,
+  classifyMove,
+  latestTwoFilings,
+  sentimentOf,
+  type SecurityPosition,
+} from '../lib/aggregation.js';
 
 const router = Router();
 
@@ -11,8 +26,20 @@ interface Accumulator {
   issuerName: string;
   ticker: string | null;
   stockId: string | null;
+  bullishValueCents: number;
+  bearishValueCents: number;
   totalValueCents: number;
-  pctSum: number;
+  pctSum: number;          // sum of total pct across funds (for avg)
+  longPctSum: number;      // sum of long-share pct across funds (for conviction)
+  fundsNew: number;
+  fundsAdded: number;
+  fundsTrimmed: number;
+  fundsExited: number;
+  fundsHold: number;
+  maxSharesChangePercent: number | null;
+  maxValueChangeCents: number | null;
+  fromShares: number;      // aggregate prior shares (for net change %)
+  toShares: number;        // aggregate current shares
   funds: Map<string, ScreenerFundRef>;
 }
 
@@ -23,71 +50,122 @@ router.get('/screener', (_req: Request, res: Response) => {
     const byCusip = new Map<string, Accumulator>();
 
     for (const fund of fundRows) {
-      const latest = db
-        .select()
-        .from(fundFilings)
-        .where(eq(fundFilings.fundId, fund.id))
-        .orderBy(desc(fundFilings.periodOfReport))
-        .limit(1)
-        .get();
+      const { latest, previous } = latestTwoFilings(fund.id);
       if (!latest) continue;
 
-      const holdings = db
-        .select()
-        .from(fundHoldings)
-        .where(eq(fundHoldings.filingId, latest.id))
-        .all();
+      const current = aggregateBySecurity(latest.id);
+      const prior = previous ? aggregateBySecurity(previous.id) : new Map<string, SecurityPosition>();
 
-      // Aggregate this fund's own holdings by CUSIP first (manager dupes).
-      const perFund = new Map<string, { value: number; pct: number; row: typeof holdings[number] }>();
-      for (const h of holdings) {
-        const key = h.cusip || h.issuerName;
-        const existing = perFund.get(key);
-        if (existing) {
-          existing.value += h.valueCents;
-          existing.pct += h.pctOfPortfolio;
-        } else {
-          perFund.set(key, { value: h.valueCents, pct: h.pctOfPortfolio, row: h });
-        }
-      }
+      for (const [key, pos] of current) {
+        const { changeType, sharesChangePercent } = classifyMove(prior.get(key), pos);
+        const priorPos = prior.get(key);
+        const valueChangeCents = priorPos ? pos.totalValueCents - priorPos.totalValueCents : null;
 
-      for (const [key, agg] of perFund) {
         let acc = byCusip.get(key);
         if (!acc) {
           acc = {
-            cusip: agg.row.cusip,
-            issuerName: agg.row.issuerName,
-            ticker: agg.row.ticker,
-            stockId: agg.row.stockId,
+            cusip: pos.cusip,
+            issuerName: pos.issuerName,
+            ticker: pos.ticker,
+            stockId: pos.stockId,
+            bullishValueCents: 0,
+            bearishValueCents: 0,
             totalValueCents: 0,
             pctSum: 0,
+            longPctSum: 0,
+            fundsNew: 0,
+            fundsAdded: 0,
+            fundsTrimmed: 0,
+            fundsExited: 0,
+            fundsHold: 0,
+            maxSharesChangePercent: null,
+            maxValueChangeCents: null,
+            fromShares: 0,
+            toShares: 0,
             funds: new Map(),
           };
           byCusip.set(key, acc);
         }
-        if (!acc.ticker && agg.row.ticker) acc.ticker = agg.row.ticker;
-        if (!acc.stockId && agg.row.stockId) acc.stockId = agg.row.stockId;
-        acc.totalValueCents += agg.value;
-        acc.pctSum += agg.pct;
+        if (!acc.ticker && pos.ticker) acc.ticker = pos.ticker;
+        if (!acc.stockId && pos.stockId) acc.stockId = pos.stockId;
+
+        acc.bullishValueCents += pos.bullishValueCents;
+        acc.bearishValueCents += pos.bearishValueCents;
+        acc.totalValueCents += pos.totalValueCents;
+        acc.pctSum += pos.pctOfPortfolio;
+        acc.longPctSum += pos.longPctOfPortfolio;
+        acc.toShares += pos.shares;
+        acc.fromShares += prior.get(key)?.shares ?? 0;
+
+        if (changeType === 'new') acc.fundsNew += 1;
+        else if (changeType === 'add') acc.fundsAdded += 1;
+        else if (changeType === 'trim') acc.fundsTrimmed += 1;
+        else if (changeType === 'hold') acc.fundsHold += 1;
+        // 'exit' never appears here (security is present in the current filing).
+
+        if (sharesChangePercent != null) {
+          acc.maxSharesChangePercent =
+            acc.maxSharesChangePercent == null
+              ? sharesChangePercent
+              : Math.max(acc.maxSharesChangePercent, sharesChangePercent);
+        }
+        if (valueChangeCents != null) {
+          acc.maxValueChangeCents =
+            acc.maxValueChangeCents == null
+              ? valueChangeCents
+              : Math.max(acc.maxValueChangeCents, valueChangeCents);
+        }
+
         acc.funds.set(fund.id, {
           fundId: fund.id,
           fundName: fund.name,
-          valueCents: agg.value,
-          pctOfPortfolio: agg.pct,
+          valueCents: pos.totalValueCents,
+          pctOfPortfolio: pos.pctOfPortfolio,
+          bullishValueCents: pos.bullishValueCents,
+          bearishValueCents: pos.bearishValueCents,
+          changeType: changeType as HoldingChangeType,
+          sharesChangePercent,
+          valueChangeCents,
         });
       }
     }
 
-    const rows: ScreenerRow[] = Array.from(byCusip.values()).map((acc) => ({
-      cusip: acc.cusip,
-      issuerName: acc.issuerName,
-      ticker: acc.ticker,
-      stockId: acc.stockId,
-      fundCount: acc.funds.size,
-      totalValueCents: acc.totalValueCents,
-      avgPctOfPortfolio: acc.funds.size > 0 ? acc.pctSum / acc.funds.size : 0,
-      funds: Array.from(acc.funds.values()).sort((a, b) => b.valueCents - a.valueCents),
-    }));
+    // Resolve fundamental metrics for any tracked securities.
+    const trackedIds = [...byCusip.values()].map((a) => a.stockId).filter((x): x is string => !!x);
+    const metricsMap = buildMetricsMap(trackedIds);
+
+    const rows: ScreenerRow[] = Array.from(byCusip.values()).map((acc) => {
+      const fundCount = acc.funds.size;
+      const sentiment: PositionSentiment = sentimentOf(acc.bullishValueCents, acc.bearishValueCents);
+      const metrics: ScreenerMetrics | null = acc.stockId ? metricsMap.get(acc.stockId) ?? null : null;
+      const netSharesChangePercent =
+        acc.fromShares > 0 ? ((acc.toShares - acc.fromShares) / acc.fromShares) * 100 : null;
+
+      return {
+        cusip: acc.cusip,
+        issuerName: acc.issuerName,
+        ticker: acc.ticker,
+        stockId: acc.stockId,
+        isTracked: !!acc.stockId,
+        fundCount,
+        totalValueCents: acc.totalValueCents,
+        bullishValueCents: acc.bullishValueCents,
+        bearishValueCents: acc.bearishValueCents,
+        sentiment,
+        avgPctOfPortfolio: fundCount > 0 ? acc.pctSum / fundCount : 0,
+        convictionPct: fundCount > 0 ? acc.longPctSum / fundCount : 0,
+        fundsNew: acc.fundsNew,
+        fundsAdded: acc.fundsAdded,
+        fundsTrimmed: acc.fundsTrimmed,
+        fundsExited: acc.fundsExited,
+        fundsHold: acc.fundsHold,
+        maxSharesChangePercent: acc.maxSharesChangePercent,
+        maxValueChangeCents: acc.maxValueChangeCents,
+        netSharesChangePercent,
+        metrics,
+        funds: Array.from(acc.funds.values()).sort((a, b) => b.valueCents - a.valueCents),
+      };
+    });
 
     rows.sort((a, b) => b.fundCount - a.fundCount || b.totalValueCents - a.totalValueCents);
 

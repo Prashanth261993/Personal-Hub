@@ -19,6 +19,8 @@ import StocksBrokerage from './apps/stocks/pages/Brokerage';
 import FundsDashboard from './apps/funds/pages/Dashboard';
 import FundDetail from './apps/funds/pages/FundDetail';
 import FundsScreener from './apps/funds/pages/Screener';
+import FundsInsights from './apps/funds/pages/Insights';
+import FundsMappings from './apps/funds/pages/Mappings';
 
 export default function App() {
   return (
@@ -70,6 +72,8 @@ export default function App() {
         {/* Funds App */}
         <Route path="/funds" element={<FundsDashboard />} />
         <Route path="/funds/screener" element={<FundsScreener />} />
+        <Route path="/funds/insights" element={<FundsInsights />} />
+        <Route path="/funds/mappings" element={<FundsMappings />} />
         <Route path="/funds/:id" element={<FundDetail />} />
 
         {/* Platform */}

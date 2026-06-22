@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Building2, RefreshCw, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Building2, RefreshCw, ExternalLink, Pencil, Check, X } from 'lucide-react';
 import type { HoldingChangeType } from '@networth/shared';
-import { fetchFund, fetchFundDeltas, fetchFundHoldings, refreshFund } from '../api';
+import { fetchFund, fetchFundDeltas, fetchFundHoldings, refreshFund, updateFund } from '../api';
 
 function compactCurrency(cents: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -40,6 +40,8 @@ export default function FundDetail() {
   const queryClient = useQueryClient();
   const [selectedFilingId, setSelectedFilingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'holdings' | 'changes'>('holdings');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['fund', id],
@@ -75,6 +77,16 @@ export default function FundDetail() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (name: string) => updateFund(id, { name }),
+    meta: { successMessage: 'Fund name updated' },
+    onSuccess: () => {
+      setIsEditingName(false);
+      queryClient.invalidateQueries({ queryKey: ['fund', id] });
+      queryClient.invalidateQueries({ queryKey: ['funds'] });
+    },
+  });
+
   if (isLoading) return <p className="text-gray-400 text-sm">Loading fund…</p>;
   if (!data) return <p className="text-gray-500">Fund not found.</p>;
 
@@ -94,7 +106,49 @@ export default function FundDetail() {
               <Building2 className="w-6 h-6 text-amber-600" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">{fund.name}</h2>
+              {isEditingName ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    autoFocus
+                    value={nameDraft}
+                    onChange={(e) => setNameDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && nameDraft.trim()) updateMutation.mutate(nameDraft.trim());
+                      if (e.key === 'Escape') setIsEditingName(false);
+                    }}
+                    className="text-xl font-bold text-gray-900 border border-gray-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  />
+                  <button
+                    onClick={() => nameDraft.trim() && updateMutation.mutate(nameDraft.trim())}
+                    disabled={updateMutation.isPending || !nameDraft.trim()}
+                    className="p-1.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50"
+                    title="Save name"
+                  >
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setIsEditingName(false)}
+                    className="p-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    title="Cancel"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl font-bold text-gray-900">{fund.name}</h2>
+                  <button
+                    onClick={() => {
+                      setNameDraft(fund.name);
+                      setIsEditingName(true);
+                    }}
+                    className="p-1 rounded text-gray-300 hover:text-amber-600 hover:bg-amber-50"
+                    title="Edit name"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
               <p className="text-sm text-gray-400">
                 CIK {fund.cik}
                 {' · '}

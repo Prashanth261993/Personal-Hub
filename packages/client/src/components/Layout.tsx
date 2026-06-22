@@ -19,6 +19,8 @@ import {
   Landmark,
   Building2,
   Layers,
+  Lightbulb,
+  Tags,
 } from 'lucide-react';
 
 interface NavApp {
@@ -72,6 +74,8 @@ const apps: NavApp[] = [
     children: [
       { to: '/funds', label: 'Dashboard', icon: LayoutDashboard },
       { to: '/funds/screener', label: 'Screener', icon: Layers },
+      { to: '/funds/insights', label: 'Insights', icon: Lightbulb },
+      { to: '/funds/mappings', label: 'Ticker Mapping', icon: Tags },
     ],
   },
 ];
