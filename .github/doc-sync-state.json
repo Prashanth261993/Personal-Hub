@@ -1,5 +1,5 @@
 {
-  "lastReviewedCommit": "d9c8f289d142d0657e8f961c571a47fe9ac56261",
-  "lastReviewedAt": "2026-04-14T22:50:00.000Z",
-  "notes": "Documented: Stock Research Agent (MCP + GitHub Models + SSE), custom dashboard presets, search/sort/filters, TiptapEditor image + link extensions, Research Journal full-width layout, express.json 50mb limit, react-hot-toast global MutationCache, concurrently --raw, env vars for agent."
+  "lastReviewedCommit": "1d8c14f31b6eed6b5760d57717a3d6301347d104",
+  "lastReviewedAt": "2026-06-11T00:00:00.000Z",
+  "notes": "Documented the Funds 13F app (Phases 1-3, work currently uncommitted on the hedge_fund_tracking branch): funds/fund_filings/fund_holdings/cusip_map tables; SEC EDGAR client (free, no API key, PersonalHub/1.0 User-Agent, <=10 req/s rate limiter, fast-xml-parser for 13F info-table XML); value-units rule (valueDollarMultiplier x1000 for filings before 2023-01-01); manual-refresh + backfill model (getRecent13Fs, BACKFILL_LIMIT=6, skips existing accessions, post-import link-backfill pass for NULL tickers); best-effort auto-linking via cusip_map + company_tickers.json normalizeName matching; /api/funds routes (GET /, /summary, POST /, GET /screener, GET /:id, /:id/holdings, /:id/deltas, POST /:id/refresh, POST /holdings/:holdingId/link, DELETE /:id); QoQ deltas (HoldingDelta new/add/trim/exit/hold); cross-fund screener (aggregate by CUSIP across funds' latest filings, screener router mounted before :id); client Dashboard/FundDetail (Holdings+Changes tabs, stock cross-links)/Screener pages + funds query keys; fast-xml-parser server dep. Prior Plaid brokerage docs remain current."
 }

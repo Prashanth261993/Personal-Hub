@@ -1,0 +1,52 @@
+{
+  "presets": [
+    {
+      "id": "builtin-consensus",
+      "label": "Consensus Holdings",
+      "description": "Securities held by two or more tracked funds.",
+      "builtIn": true,
+      "filters": { "minFunds": 2 },
+      "sortKey": "fundCount",
+      "createdAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "builtin-cheap-conviction",
+      "label": "Cheap Conviction",
+      "description": "Tracked names trading under 20x P/E that funds hold with high conviction.",
+      "builtIn": true,
+      "filters": { "trackedOnly": true, "peRatio": { "min": "", "max": "20" } },
+      "sortKey": "convictionPct",
+      "createdAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "builtin-high-upside",
+      "label": "High Upside",
+      "description": "Tracked names with 20%+ upside to analyst target.",
+      "builtIn": true,
+      "filters": {
+        "trackedOnly": true,
+        "upsidePct": { "min": "20", "max": "" }
+      },
+      "sortKey": "upsidePct",
+      "createdAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "builtin-big-increases",
+      "label": "Big Stake Increases",
+      "description": "Positions a fund increased by 25%+ quarter over quarter.",
+      "builtIn": true,
+      "filters": { "minStakeIncreasePct": "25" },
+      "sortKey": "maxSharesChangePercent",
+      "createdAt": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "builtin-bearish",
+      "label": "Bearish Bets",
+      "description": "Securities where funds hold meaningful put (bearish) exposure.",
+      "builtIn": true,
+      "filters": { "sentiment": "bearish" },
+      "sortKey": "bearishValueCents",
+      "createdAt": "2026-01-01T00:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "funds": [
+    { "cik": "0001067983", "name": "Berkshire Hathaway Inc (Warren Buffett)" },
+    {
+      "cik": "0001649339",
+      "name": "Scion Asset Management, LLC (Michael Burry)"
+    },
+    {
+      "cik": "0001336528",
+      "name": "Pershing Square Capital Management (Bill Ackman)"
+    },
+    { "cik": "0001167483", "name": "Greenlight Capital (David Einhorn)" },
+    { "cik": "0001061768", "name": "Appaloosa LP (David Tepper)" }
+  ]
+}

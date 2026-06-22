@@ -8,7 +8,8 @@ A personal productivity platform with a modular app architecture. React SPA fron
 |-----|-------|-------------|--------|
 | **Net Worth** | `/networth` | Track assets and liabilities for each family member, view trends, and get insights | Active |
 | **Planning / Todo** | `/todo` | Ultra-modern task management with Kanban board, calendar view, recurring tasks, subtasks, rich-text notes, and drag-and-drop | Active |
-| **Stocks** | `/stocks` | Track watchlist ideas and holdings with valuation metrics, Alpha Vantage refresh, rich research notes with image support, version history, dashboard search/sort/filters, custom presets, and an AI-powered research agent | Active |
+| **Stocks** | `/stocks` | Track watchlist ideas and holdings with valuation metrics, Alpha Vantage refresh, rich research notes with image support, version history, dashboard search/sort/filters, custom presets, an AI-powered research agent, and Plaid brokerage sync (holdings, lots, transactions) | Active |
+| **Funds** | `/funds` | Track hedge-fund 13F filings from SEC EDGAR (free): seed famous investors, manual refresh to pull recent quarters, view latest holdings, quarter-over-quarter changes (new/add/trim/exit), auto-link positions to tracked stocks, and a cross-fund screener for most-owned names | Active |
 
 ## Architecture
 
@@ -19,6 +20,8 @@ PersonalHub/
 │   │   ├── family-members.json
 │   │   ├── categories.json
 │   │   └── goals.json
+│   ├── stocks/                  # Stocks dashboard presets
+│   ├── funds/                   # Funds 13F seed list (famous investors)
 │   └── todo/                    # (reserved for future todo configs)
 ├── data/                        # SQLite databases (gitignored)
 ├── packages/
@@ -27,7 +30,8 @@ PersonalHub/
 │   │   └── src/
 │   │       ├── apps/
 │   │       │   ├── networth/    # Net Worth routes
-│   │       │   ├── stocks/      # Stocks routes, Alpha Vantage, MCP agent, presets
+│   │       │   ├── stocks/      # Stocks routes, Alpha Vantage, MCP agent, presets, Plaid
+│   │       │   ├── funds/       # Funds routes, SEC EDGAR client, screener, seed
 │   │       │   └── todo/        # Todo routes (groups, todos, stats)
 │   │       ├── db/              # Drizzle ORM + SQLite
 │   │       └── lib/             # Shared server helpers
@@ -35,7 +39,8 @@ PersonalHub/
 │       └── src/
 │           ├── apps/
 │           │   ├── networth/    # Net Worth pages & API
-│           │   ├── stocks/      # Stocks pages, API, editor, theme & Agent chat
+│           │   ├── stocks/      # Stocks pages, API, editor, theme, Agent chat & Brokerage
+│           │   ├── funds/       # Funds pages (Dashboard, FundDetail, Screener) & API
 │           │   └── todo/        # Todo pages, API & 16 components
 │           ├── components/      # Platform-level components (Layout, etc.)
 │           ├── lib/             # Shared client helpers
@@ -67,7 +72,9 @@ npm install
 
 ### 2. Start the app
 
-If you want manual Alpha Vantage refreshes in the Stocks app, create a local `.env` from `.env.example` and set `ALPHA_VANTAGE_API_KEY` before starting the server. To enable the AI-powered Stock Research Agent, also set `GITHUB_MODELS_TOKEN` (a GitHub PAT with `models:read` permission).
+If you want manual Alpha Vantage refreshes in the Stocks app, create a local `.env` from `.env.example` and set `ALPHA_VANTAGE_API_KEY` before starting the server. To enable the AI-powered Stock Research Agent, also set `GITHUB_MODELS_TOKEN` (a GitHub PAT with `models:read` permission). To enable Plaid brokerage sync, set `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`, and `PLAID_ENCRYPTION_KEY` (a 64-character hex key used to AES-256-GCM encrypt stored access tokens).
+
+The Funds app needs no API key — it reads filings directly from the free SEC EDGAR endpoints. SEC requires a descriptive `User-Agent` header and asks clients to stay under 10 requests/second; the EDGAR client sets a `PersonalHub/1.0` User-Agent and serializes requests with a minimum interval to comply.
 
 ```bash
 npm run dev
@@ -144,12 +151,36 @@ Navigate to **http://localhost:5173** — the Home page shows all available apps
 | PUT | `/api/stocks/:id` | Update a stock record and append a version |
 | DELETE | `/api/stocks/:id` | Delete a stock, its metrics cache, and version history |
 | GET | `/api/stocks/:id/history` | List saved versions for a stock |
+| GET | `/api/stocks/:id/transactions` | List imported buy/sell/dividend/transfer/fee transactions for a stock |
+| GET | `/api/stocks/:id/lots` | List open tax lots with computed cost basis, gain/loss, holding days, and long-term flag |
+| GET | `/api/stocks/:id/metrics-history` | Time series of metric values derived from version history (deduped per date) |
 | POST | `/api/stocks/:id/refresh` | Manually refresh Alpha Vantage metrics for one stock |
 | GET | `/api/stocks/presets` | List saved dashboard filter presets |
 | POST | `/api/stocks/presets` | Create a filter preset |
 | PUT | `/api/stocks/presets/:id` | Update a filter preset |
 | DELETE | `/api/stocks/presets/:id` | Delete a filter preset |
+| POST | `/api/stocks/plaid/link-token` | Create a Plaid Link token |
+| POST | `/api/stocks/plaid/exchange` | Exchange a Plaid public token, persist an encrypted connection |
+| POST | `/api/stocks/plaid/preview/:connectionId` | Preview Plaid holdings matched against tracked stocks (no writes) |
+| POST | `/api/stocks/plaid/sync/:connectionId` | Sync selected symbols: holdings, lots (FIFO sells), and transactions |
+| GET | `/api/stocks/plaid/connections` | List connected brokerage institutions |
+| DELETE | `/api/stocks/plaid/connections/:id` | Delete a connection and reset linked stocks to manual sync |
 | POST | `/api/stocks/agent/chat` | Chat with the AI research agent (SSE stream) |
+
+### Funds (`/api/funds`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/funds` | Dashboard rows: each tracked fund with latest-filing quarter, total value, position count, and top holding |
+| GET | `/api/funds/summary` | Home-card summary (tracked count, total positions, refreshed-today count) |
+| POST | `/api/funds` | Track a new fund by CIK |
+| GET | `/api/funds/screener` | Cross-fund screener: most-owned positions aggregated by CUSIP across every fund's latest filing |
+| GET | `/api/funds/:id` | Fund detail with the list of imported filings |
+| GET | `/api/funds/:id/holdings?filingId=` | Holdings for a filing (defaults to the latest) |
+| GET | `/api/funds/:id/deltas?from=&to=` | Quarter-over-quarter position changes (new/add/trim/exit/hold); defaults to the latest two filings |
+| POST | `/api/funds/:id/refresh` | Pull recent 13F-HR filings from SEC EDGAR (backfills prior quarters) and auto-link positions to tracked stocks |
+| POST | `/api/funds/holdings/:holdingId/link` | Manually map a holding (by CUSIP) to a ticker / tracked stock |
+| DELETE | `/api/funds/:id` | Stop tracking a fund and delete its filings and holdings |
 
 ---
 
@@ -170,6 +201,10 @@ Navigate to **http://localhost:5173** — the Home page shows all available apps
 | `/stocks/new` | New Stock | Create a stock record with thesis, notes, and manual overrides |
 | `/stocks/:id` | Stock Detail | Full-width metrics, research journal with image support, manual overrides, and version history |
 | `/stocks/agent` | Stock Agent | AI-powered research assistant chat using Alpha Vantage via MCP |
+| `/stocks/brokerage` | Brokerage | Connect Plaid accounts, preview/select holdings, and sync into tracked stocks |
+| `/funds` | Funds Dashboard | Tracked funds with latest-quarter value, position count, top holding, and per-fund refresh |
+| `/funds/screener` | Funds Screener | Searchable/sortable cross-fund table of most-owned positions with links to funds and tracked stocks |
+| `/funds/:id` | Fund Detail | Filing selector, Holdings tab, and Changes tab (color-coded QoQ deltas) with cross-links to Stock Detail |
 | `/help` | Help | In-app guide |
 
 ---
@@ -214,6 +249,12 @@ ALPHA_VANTAGE_API_KEY=your_alpha_vantage_api_key_here
 GITHUB_MODELS_TOKEN=your_github_pat_with_models_read
 AGENT_MODEL=gpt-4o-mini
 AGENT_BASE_URL=https://models.github.ai/inference
+
+# Plaid Brokerage Integration
+PLAID_CLIENT_ID=your_plaid_client_id
+PLAID_SECRET=your_plaid_sandbox_secret
+PLAID_ENV=sandbox
+PLAID_ENCRYPTION_KEY=your_64_char_hex_key_for_aes256
 ```
 
 ### config/networth/family-members.json
@@ -288,6 +329,8 @@ The Stocks app is a finance-oriented research workspace for both watchlist ideas
 - **Dashboard Search & Filters** — text search, 18 sort options, sector filter, 9 numeric range filters, and saved custom presets (`config/stocks/presets.json`)
 - **Rich Research Notes** — full-width Research Journal section with Tiptap editor supporting images (paste, drag-drop, toolbar upload as base64), links, headings, and task lists
 - **AI Research Agent** — chat-based assistant at `/stocks/agent` powered by GitHub Models (or any OpenAI-compatible endpoint) with Alpha Vantage tools via MCP. Supports real-time streaming via SSE
+- **Plaid Brokerage Sync** — connect an investment account at `/stocks/brokerage` via Plaid Link, preview holdings matched against tracked symbols, then sync selected symbols. Sync updates shares and average cost basis, imports investment transactions (deduped by Plaid transaction ID), creates per-purchase tax lots, applies FIFO on sells, and recomputes cost basis from remaining lots. Access tokens are AES-256-GCM encrypted at rest
+- **Tax Lots & Metrics History** — the detail page surfaces open lots (cost basis, gain/loss, holding days, long-term flag) and a price-target/valuation history chart derived from version snapshots
 - **Dark Finance UI** — the Stocks experience has app-scoped dark/light theming without re-theming the rest of the platform
 - **Toast Notifications** — global mutation feedback via `react-hot-toast` and TanStack Query `MutationCache`
 
@@ -296,6 +339,9 @@ The Stocks app is a finance-oriented research workspace for both watchlist ideas
 - `stocks` stores the latest editable stock state
 - `stock_metrics_cache` stores the latest Alpha Vantage-enriched metrics and refresh status
 - `stock_versions` stores append-only historical snapshots for each save or API-driven metadata update
+- `plaid_connections` stores connected institutions with AES-256-GCM-encrypted access tokens (unique by `item_id`)
+- `stock_lots` stores per-purchase tax lots (remaining + original quantity, price, fees, source) decremented via FIFO on sells
+- `stock_transactions` stores the imported buy/sell/dividend/transfer/fee history (deduped by `plaid_transaction_id`)
 
 ---
 

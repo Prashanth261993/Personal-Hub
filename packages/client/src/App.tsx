@@ -16,6 +16,11 @@ import NewStock from './apps/stocks/pages/NewStock';
 import StockDetail from './apps/stocks/pages/StockDetail';
 import StocksAgent from './apps/stocks/pages/Agent';
 import StocksBrokerage from './apps/stocks/pages/Brokerage';
+import FundsDashboard from './apps/funds/pages/Dashboard';
+import FundDetail from './apps/funds/pages/FundDetail';
+import FundsScreener from './apps/funds/pages/Screener';
+import FundsInsights from './apps/funds/pages/Insights';
+import FundsMappings from './apps/funds/pages/Mappings';
 
 export default function App() {
   return (
@@ -63,6 +68,13 @@ export default function App() {
         <Route path="/stocks/brokerage" element={<StocksBrokerage />} />
         <Route path="/stocks/new" element={<NewStock />} />
         <Route path="/stocks/:id" element={<StockDetail />} />
+
+        {/* Funds App */}
+        <Route path="/funds" element={<FundsDashboard />} />
+        <Route path="/funds/screener" element={<FundsScreener />} />
+        <Route path="/funds/insights" element={<FundsInsights />} />
+        <Route path="/funds/mappings" element={<FundsMappings />} />
+        <Route path="/funds/:id" element={<FundDetail />} />
 
         {/* Platform */}
         <Route path="/help" element={<Help />} />

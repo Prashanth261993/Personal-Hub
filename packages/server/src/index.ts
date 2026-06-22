@@ -7,6 +7,8 @@ import { runMigrations } from './db/migrate.js';
 import networthRouter from './apps/networth/index.js';
 import todoRouter from './apps/todo/index.js';
 import stocksRouter from './apps/stocks/index.js';
+import fundsRouter from './apps/funds/index.js';
+import { seedFunds } from './apps/funds/lib/seed.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -25,10 +27,14 @@ app.use(express.json({ limit: '50mb' }));
 runMigrations();
 console.log('Database migrations complete.');
 
+// Seed well-known funds (idempotent)
+seedFunds();
+
 // App Routes
 app.use('/api/networth', networthRouter);
 app.use('/api/todo', todoRouter);
 app.use('/api/stocks', stocksRouter);
+app.use('/api/funds', fundsRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {
