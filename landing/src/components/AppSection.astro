@@ -5,6 +5,10 @@ interface Shot {
   src: string;
   alt: string;
   caption?: string;
+  /** Optional motion clip (WebM). When set, the shot renders as an autoplay loop video using `src` as the poster and `gif` as a fallback. */
+  clip?: string;
+  /** Animated GIF fallback for browsers without WebM support. */
+  gif?: string;
 }
 
 interface Props {
@@ -55,15 +59,33 @@ const [primary, ...secondary] = shots;
           <span class="h-2.5 w-2.5 rounded-full bg-[#febc2e]"></span>
           <span class="h-2.5 w-2.5 rounded-full bg-[#28c840]"></span>
         </div>
-        <img
-          src={`${base}${primary.src}`}
-          alt={primary.alt}
-          width="1280"
-          height="720"
-          loading="lazy"
-          data-zoom
-          class="block max-h-[540px] w-full cursor-zoom-in object-cover object-top transition-[filter] duration-300 hover:brightness-110"
-        />
+        {
+          primary.clip ? (
+            <video
+              poster={`${base}${primary.src}`}
+              autoplay
+              loop
+              muted
+              playsinline
+              preload="metadata"
+              aria-label={primary.alt}
+              class="block max-h-[540px] w-full object-cover object-top"
+            >
+              <source src={`${base}${primary.clip}`} type="video/webm" />
+              {primary.gif && <img src={`${base}${primary.gif}`} alt={primary.alt} loading="lazy" class="block w-full" />}
+            </video>
+          ) : (
+            <img
+              src={`${base}${primary.src}`}
+              alt={primary.alt}
+              width="1280"
+              height="720"
+              loading="lazy"
+              data-zoom
+              class="block max-h-[540px] w-full cursor-zoom-in object-cover object-top transition-[filter] duration-300 hover:brightness-110"
+            />
+          )
+        }
       </div>
 
       {
@@ -71,15 +93,31 @@ const [primary, ...secondary] = shots;
           <div class="mt-4 grid grid-cols-2 gap-4">
             {secondary.map((s) => (
               <figure class="window-frame overflow-hidden rounded-[12px]">
-                <img
-                  src={`${base}${s.src}`}
-                  alt={s.alt}
-                  width="640"
-                  height="400"
-                  loading="lazy"
-                  data-zoom
-                  class="block h-[150px] w-full cursor-zoom-in object-cover object-top transition-[filter] duration-300 hover:brightness-110"
-                />
+                {s.clip ? (
+                  <video
+                    poster={`${base}${s.src}`}
+                    autoplay
+                    loop
+                    muted
+                    playsinline
+                    preload="metadata"
+                    aria-label={s.alt}
+                    class="block h-[150px] w-full object-cover object-top"
+                  >
+                    <source src={`${base}${s.clip}`} type="video/webm" />
+                    {s.gif && <img src={`${base}${s.gif}`} alt={s.alt} loading="lazy" class="block w-full" />}
+                  </video>
+                ) : (
+                  <img
+                    src={`${base}${s.src}`}
+                    alt={s.alt}
+                    width="640"
+                    height="400"
+                    loading="lazy"
+                    data-zoom
+                    class="block h-[150px] w-full cursor-zoom-in object-cover object-top transition-[filter] duration-300 hover:brightness-110"
+                  />
+                )}
                 {s.caption && (
                   <figcaption class="bg-[#0a0b12] px-3 py-1.5 text-[11px] text-[var(--color-faint)]">
                     {s.caption}
