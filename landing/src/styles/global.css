@@ -2,8 +2,10 @@
 
 @theme {
   /* Dark premium palette — deep navy base, indigo + cyan accents */
-  --color-base: #08080c;
-  --color-base-2: #0c0d14;
+  /* NOTE: do not name a color `base` — Tailwind would generate a `text-base`
+     color utility that overrides the font-size utility. */
+  --color-bg: #08080c;
+  --color-bg-2: #0c0d14;
   --color-surface: #111322;
   --color-border: #1e2030;
   --color-ink: #e8e9f3;
@@ -26,7 +28,7 @@ html {
 }
 
 body {
-  background-color: var(--color-base);
+  background-color: var(--color-bg);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -124,4 +126,75 @@ body {
 }
 .marquee:hover .marquee-track {
   animation-play-state: paused;
+}
+
+/* Image lightbox */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 5vmin;
+  background: rgba(4, 4, 8, 0.82);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.32s ease, visibility 0.32s ease;
+}
+.lightbox.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+.lightbox__figure {
+  margin: 0;
+  max-width: min(1200px, 94vw);
+  max-height: 90vh;
+  transform: scale(0.94);
+  opacity: 0;
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.34s ease;
+}
+.lightbox.is-open .lightbox__figure {
+  transform: scale(1);
+  opacity: 1;
+}
+.lightbox__img {
+  display: block;
+  max-width: 100%;
+  max-height: 84vh;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 40px 120px -20px rgba(0, 0, 0, 0.8);
+}
+.lightbox__cap {
+  margin-top: 0.75rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+.lightbox__close {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  display: grid;
+  place-items: center;
+  height: 2.75rem;
+  width: 2.75rem;
+  border-radius: 9999px;
+  color: var(--color-ink);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.lightbox__close:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lightbox,
+  .lightbox__figure { transition: none; }
 }

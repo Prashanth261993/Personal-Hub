@@ -61,7 +61,8 @@ const [primary, ...secondary] = shots;
           width="1280"
           height="720"
           loading="lazy"
-          class="block max-h-[540px] w-full object-cover object-top"
+          data-zoom
+          class="block max-h-[540px] w-full cursor-zoom-in object-cover object-top transition-[filter] duration-300 hover:brightness-110"
         />
       </div>
 
@@ -76,7 +77,8 @@ const [primary, ...secondary] = shots;
                   width="640"
                   height="400"
                   loading="lazy"
-                  class="block h-[150px] w-full object-cover object-top"
+                  data-zoom
+                  class="block h-[150px] w-full cursor-zoom-in object-cover object-top transition-[filter] duration-300 hover:brightness-110"
                 />
                 {s.caption && (
                   <figcaption class="bg-[#0a0b12] px-3 py-1.5 text-[11px] text-[var(--color-faint)]">

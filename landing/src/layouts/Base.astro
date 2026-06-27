@@ -47,6 +47,19 @@ const ogImage = `${base}/shots/stocks-detail.png`;
   <body>
     <slot />
 
+    <!-- Image lightbox -->
+    <div id="lightbox" class="lightbox" aria-hidden="true">
+      <button type="button" class="lightbox__close" aria-label="Close">
+        <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M6 6l12 12 M18 6L6 18" />
+        </svg>
+      </button>
+      <figure class="lightbox__figure">
+        <img class="lightbox__img" src="" alt="" />
+        <figcaption class="lightbox__cap"></figcaption>
+      </figure>
+    </div>
+
     <script is:inline>
       // Lightweight scroll-reveal — no framework needed.
       const io = new IntersectionObserver(
@@ -61,6 +74,35 @@ const ogImage = `${base}/shots/stocks-detail.png`;
         { threshold: 0.12 },
       );
       document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+    </script>
+
+    <script is:inline>
+      // Click-to-zoom lightbox with smooth fade + scale.
+      const lb = document.getElementById('lightbox');
+      const lbImg = lb.querySelector('.lightbox__img');
+      const lbCap = lb.querySelector('.lightbox__cap');
+
+      function openLightbox(src, alt) {
+        lbImg.src = src;
+        lbImg.alt = alt || '';
+        lbCap.textContent = alt || '';
+        lb.classList.add('is-open');
+        lb.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeLightbox() {
+        lb.classList.remove('is-open');
+        lb.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }
+
+      document.querySelectorAll('[data-zoom]').forEach((img) => {
+        img.addEventListener('click', () => openLightbox(img.currentSrc || img.src, img.alt));
+      });
+      lb.addEventListener('click', closeLightbox);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeLightbox();
+      });
     </script>
   </body>
 </html>

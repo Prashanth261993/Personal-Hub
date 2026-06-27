@@ -39,6 +39,98 @@ const layers = [
       </p>
     </div>
 
+    <!-- System flow diagram -->
+    <div class="reveal mt-14 grid items-stretch gap-4 lg:grid-cols-[1fr_auto_1fr_auto_1fr]">
+      <!-- Client -->
+      <div class="glass card-glow rounded-2xl p-5">
+        <div class="flex items-center gap-2">
+          <span class="h-2.5 w-2.5 rounded-full" style="background:#7c7cff"></span>
+          <h3 class="font-mono text-sm font-semibold text-[var(--color-ink)]">Browser · React SPA</h3>
+        </div>
+        <p class="mt-1 text-xs text-[var(--color-faint)]">Vite · port 5173</p>
+        <div class="mt-4 grid grid-cols-2 gap-2">
+          {['Net Worth', 'Stocks', 'Todo', 'Funds'].map((a) => (
+            <span class="rounded-lg border border-[var(--color-border)] bg-white/[0.04] px-2.5 py-1.5 text-center text-xs text-[var(--color-muted)]">
+              {a}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="flex items-center justify-center text-[var(--color-faint)]">
+        <span class="font-mono text-xs">/api</span>
+        <svg viewBox="0 0 40 24" class="hidden h-6 w-10 lg:block" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M2 12h32 M28 6l8 6-8 6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg viewBox="0 0 24 40" class="h-8 w-6 rotate-0 lg:hidden" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 2v32 M6 28l6 8 6-8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+
+      <!-- Server + Data -->
+      <div class="glass card-glow rounded-2xl p-5">
+        <div class="flex items-center gap-2">
+          <span class="h-2.5 w-2.5 rounded-full" style="background:#22d3ee"></span>
+          <h3 class="font-mono text-sm font-semibold text-[var(--color-ink)]">Express API</h3>
+        </div>
+        <p class="mt-1 text-xs text-[var(--color-faint)]">port 3001 · Drizzle ORM</p>
+        <div class="mt-4 flex flex-wrap gap-1.5">
+          {['/networth', '/stocks', '/todo', '/funds'].map((r) => (
+            <span class="rounded-md border border-[var(--color-border)] bg-white/[0.04] px-2 py-0.5 font-mono text-[11px] text-[var(--color-muted)]">
+              {r}
+            </span>
+          ))}
+        </div>
+        <div class="mt-4 flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-white/[0.04] px-3 py-2">
+          <svg viewBox="0 0 24 24" class="h-4 w-4 text-[var(--color-accent-2)]" fill="none" stroke="currentColor" stroke-width="1.6">
+            <ellipse cx="12" cy="5" rx="8" ry="3" />
+            <path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5 M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+          </svg>
+          <span class="text-xs text-[var(--color-muted)]">SQLite · WAL · integer cents</span>
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="flex items-center justify-center text-[var(--color-faint)]">
+        <svg viewBox="0 0 40 24" class="hidden h-6 w-10 lg:block" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M2 12h32 M28 6l8 6-8 6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg viewBox="0 0 24 40" class="h-8 w-6 lg:hidden" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M12 2v32 M6 28l6 8 6-8" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+
+      <!-- External integrations -->
+      <div class="glass card-glow rounded-2xl p-5">
+        <div class="flex items-center gap-2">
+          <span class="h-2.5 w-2.5 rounded-full" style="background:#a78bfa"></span>
+          <h3 class="font-mono text-sm font-semibold text-[var(--color-ink)]">External services</h3>
+        </div>
+        <p class="mt-1 text-xs text-[var(--color-faint)]">free / key-gated APIs</p>
+        <ul class="mt-4 space-y-2">
+          <li class="flex items-center gap-2.5 rounded-lg border border-[var(--color-border)] bg-white/[0.04] px-3 py-2">
+            <svg viewBox="0 0 24 24" class="h-4 w-4 text-[var(--color-ink)]" fill="currentColor">
+              <path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17 5.3 18 5.6 18 5.6c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5Z" />
+            </svg>
+            <span class="text-xs text-[var(--color-muted)]">GitHub Models · OpenAI SDK <span class="text-[var(--color-faint)]">(MCP)</span></span>
+          </li>
+          <li class="flex items-center gap-2.5 rounded-lg border border-[var(--color-border)] bg-white/[0.04] px-3 py-2">
+            <span class="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-[#22d3ee]/15 font-mono text-[10px] font-bold text-[#22d3ee]">AV</span>
+            <span class="text-xs text-[var(--color-muted)]">Alpha Vantage <span class="text-[var(--color-faint)]">(MCP server)</span></span>
+          </li>
+          <li class="flex items-center gap-2.5 rounded-lg border border-[var(--color-border)] bg-white/[0.04] px-3 py-2">
+            <span class="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-[#7c7cff]/15 font-mono text-[10px] font-bold text-[#7c7cff]">P</span>
+            <span class="text-xs text-[var(--color-muted)]">Plaid <span class="text-[var(--color-faint)]">(brokerage)</span></span>
+          </li>
+          <li class="flex items-center gap-2.5 rounded-lg border border-[var(--color-border)] bg-white/[0.04] px-3 py-2">
+            <span class="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-[#a78bfa]/15 font-mono text-[10px] font-bold text-[#a78bfa]">§</span>
+            <span class="text-xs text-[var(--color-muted)]">SEC EDGAR <span class="text-[var(--color-faint)]">(13F XML)</span></span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
     <div class="reveal mt-14 grid gap-5 md:grid-cols-3">
       {
         layers.map((l) => (

@@ -19,10 +19,10 @@ const highlights = [
     tags: ['EDGAR', 'XML parsing', 'CUSIP map'],
   },
   {
-    title: 'Cross-fund screener',
-    body: 'Aggregates every fund’s latest filing per security, splitting bullish (shares + calls) from bearish (puts) value so conviction scores never get inflated by put-heavy positions.',
+    title: 'Cross-fund opportunity screener',
+    body: 'Aggregates every fund’s latest filing per security and layers on multi-factor filters, a bullish-vs-bearish sentiment split, and savable presets — so conviction scores never get inflated by put-heavy positions.',
     icon: 'M3 3v18h18 M7 14l4-4 3 3 5-6',
-    tags: ['Sentiment', 'QoQ deltas', 'Presets'],
+    tags: ['Multi-factor filters', 'Sentiment split', 'Savable presets'],
   },
   {
     title: 'Recurrence engine',
@@ -60,11 +60,11 @@ const highlights = [
                 <path d={h.icon} />
               </svg>
             </span>
-            <h3 class="mt-4 text-base font-semibold">{h.title}</h3>
+            <h3 class="mt-4 text-base font-semibold text-[var(--color-ink)]">{h.title}</h3>
             <p class="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">{h.body}</p>
             <div class="mt-4 flex flex-wrap gap-1.5">
               {h.tags.map((t) => (
-                <span class="rounded-md bg-white/5 px-2 py-0.5 font-mono text-[11px] text-[var(--color-faint)]">
+                <span class="rounded-md border border-[var(--color-border)] bg-white/[0.06] px-2 py-0.5 font-mono text-[11px] text-[var(--color-muted)]">
                   {t}
                 </span>
               ))}
