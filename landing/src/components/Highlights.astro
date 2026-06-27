@@ -1,0 +1,77 @@
+---
+const highlights = [
+  {
+    title: 'AI stock-research agent',
+    body: 'A streaming SSE agent wires the OpenAI SDK (via GitHub Models) to a Model Context Protocol client that spawns the Alpha Vantage MCP server, running multi-round tool calls before streaming the answer.',
+    icon: 'M12 2a7 7 0 0 0-7 7c0 2.4 1.2 4 2.5 5.2.7.7 1 1.1 1 2.3v.5h7v-.5c0-1.2.3-1.6 1-2.3C17.8 13 19 11.4 19 9a7 7 0 0 0-7-7Z M9 21h6 M10 23h4',
+    tags: ['MCP', 'GitHub Models', 'SSE streaming'],
+  },
+  {
+    title: 'Encrypted brokerage sync',
+    body: 'Plaid access tokens are AES-256-GCM encrypted at rest and never logged. Investment transactions import into FIFO tax lots that recompute average cost basis on every sell.',
+    icon: 'M12 2 4 5v6c0 5 3.4 8.5 8 10 4.6-1.5 8-5 8-10V5l-8-3Z M9 12l2 2 4-4',
+    tags: ['AES-256-GCM', 'Plaid', 'FIFO lots'],
+  },
+  {
+    title: 'SEC 13F pipeline',
+    body: 'A rate-limited EDGAR client parses 13F XML, normalizes the 2023 dollar-unit change, and auto-resolves CUSIP→ticker against SEC company data — caching every match for reuse.',
+    icon: 'M6 2h9l5 5v15H6V2Z M14 2v6h6 M9 13h6 M9 17h6',
+    tags: ['EDGAR', 'XML parsing', 'CUSIP map'],
+  },
+  {
+    title: 'Cross-fund screener',
+    body: 'Aggregates every fund’s latest filing per security, splitting bullish (shares + calls) from bearish (puts) value so conviction scores never get inflated by put-heavy positions.',
+    icon: 'M3 3v18h18 M7 14l4-4 3 3 5-6',
+    tags: ['Sentiment', 'QoQ deltas', 'Presets'],
+  },
+  {
+    title: 'Recurrence engine',
+    body: 'Recurring todos stay open while each completion is logged per date. The calendar expands rules into per-day instances, and dragging one detaches it into a standalone todo via exceptions.',
+    icon: 'M8 2v4 M16 2v4 M3 10h18 M5 6h14v14H5V6Z M9 16l2 2 4-4',
+    tags: ['date-fns', 'Kanban', 'Calendar'],
+  },
+  {
+    title: 'Integer-cents money model',
+    body: 'All amounts are stored as integer cents with liabilities as negatives, eliminating floating-point drift. Net worth is a simple SUM across members, categories, and snapshots.',
+    icon: 'M12 1v22 M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6',
+    tags: ['No float drift', 'Snapshots', 'Carry-forward'],
+  },
+];
+---
+
+<section id="engineering" class="relative scroll-mt-24 py-20 sm:py-28">
+  <div class="pointer-events-none absolute inset-0 bg-grid opacity-40 [mask-image:radial-gradient(60%_50%_at_50%_50%,#000,transparent)]"></div>
+  <div class="relative mx-auto max-w-6xl px-5">
+    <div class="reveal mx-auto max-w-2xl text-center">
+      <span class="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-2)]"
+        >Engineering highlights</span
+      >
+      <h2 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+        The interesting parts under the hood
+      </h2>
+    </div>
+
+    <div class="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        highlights.map((h) => (
+          <article class="reveal glass card-glow rounded-2xl p-6">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-[var(--color-accent)]/15 text-[var(--color-accent)]">
+              <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d={h.icon} />
+              </svg>
+            </span>
+            <h3 class="mt-4 text-base font-semibold">{h.title}</h3>
+            <p class="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">{h.body}</p>
+            <div class="mt-4 flex flex-wrap gap-1.5">
+              {h.tags.map((t) => (
+                <span class="rounded-md bg-white/5 px-2 py-0.5 font-mono text-[11px] text-[var(--color-faint)]">
+                  {t}
+                </span>
+              ))}
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>

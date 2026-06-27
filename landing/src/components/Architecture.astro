@@ -1,0 +1,73 @@
+---
+const layers = [
+  {
+    name: 'packages/client',
+    tag: 'Vite + React 19 SPA · port 5173',
+    items: ['TanStack Query v5', 'Tailwind CSS v4', 'Recharts', '@dnd-kit', 'Framer Motion', 'Tiptap'],
+    accent: '#7c7cff',
+  },
+  {
+    name: 'packages/server',
+    tag: 'Express API · port 3001',
+    items: ['Drizzle ORM', 'better-sqlite3', 'MCP client', 'OpenAI SDK', 'Plaid SDK', 'fast-xml-parser'],
+    accent: '#22d3ee',
+  },
+  {
+    name: 'packages/shared',
+    tag: 'TypeScript types & utilities',
+    items: ['Named exports', 'Strict mode', 'ESM throughout'],
+    accent: '#a78bfa',
+  },
+];
+---
+
+<section id="architecture" class="relative scroll-mt-24 py-20 sm:py-28">
+  <div class="mx-auto max-w-6xl px-5">
+    <div class="reveal mx-auto max-w-2xl text-center">
+      <span class="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-2)]"
+        >Architecture</span
+      >
+      <h2 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+        A clean, namespaced monorepo
+      </h2>
+      <p class="mt-4 text-[var(--color-muted)]">
+        npm workspaces with a strict dependency graph. Every app owns its own slice of
+        <code class="font-mono text-[var(--color-accent)]">config/</code>,
+        <code class="font-mono text-[var(--color-accent)]">server/src/apps/</code> and
+        <code class="font-mono text-[var(--color-accent)]">client/src/apps/</code>, mounted under
+        <code class="font-mono text-[var(--color-accent)]">/api/&lt;app&gt;/*</code>.
+      </p>
+    </div>
+
+    <div class="reveal mt-14 grid gap-5 md:grid-cols-3">
+      {
+        layers.map((l) => (
+          <div class="glass card-glow rounded-2xl p-6">
+            <div class="flex items-center justify-between">
+              <code class="font-mono text-sm font-semibold" style={`color:${l.accent}`}>
+                {l.name}
+              </code>
+              <span
+                class="h-2.5 w-2.5 rounded-full"
+                style={`background:${l.accent}`}
+              />
+            </div>
+            <p class="mt-2 text-xs text-[var(--color-faint)]">{l.tag}</p>
+            <ul class="mt-5 flex flex-wrap gap-2">
+              {l.items.map((i) => (
+                <li class="rounded-md border border-[var(--color-border)] bg-white/5 px-2.5 py-1 text-xs text-[var(--color-muted)]">
+                  {i}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+
+    <p class="reveal mt-8 text-center font-mono text-xs text-[var(--color-faint)]">
+      build order&nbsp; shared&nbsp;→&nbsp;server&nbsp;→&nbsp;client &nbsp;·&nbsp; money stored as
+      integer cents &nbsp;·&nbsp; SQLite (WAL) &nbsp;·&nbsp; inline migrations on startup
+    </p>
+  </div>
+</section>

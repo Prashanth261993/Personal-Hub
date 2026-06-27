@@ -1,0 +1,40 @@
+---
+const stack = [
+  'TypeScript',
+  'React 19',
+  'Astro',
+  'Vite',
+  'Express',
+  'Drizzle ORM',
+  'SQLite',
+  'TanStack Query',
+  'Tailwind CSS v4',
+  'Recharts',
+  '@dnd-kit',
+  'Framer Motion',
+  'Tiptap',
+  'Model Context Protocol',
+  'OpenAI SDK',
+  'Plaid',
+  'SEC EDGAR',
+  'date-fns',
+];
+const row = [...stack, ...stack];
+---
+
+<section id="stack" class="scroll-mt-24 py-16">
+  <p class="reveal mb-8 text-center text-xs font-semibold uppercase tracking-widest text-[var(--color-faint)]">
+    Built with a modern, type-safe stack
+  </p>
+  <div class="marquee relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,#000_12%,#000_88%,transparent)]">
+    <div class="marquee-track flex w-max gap-3">
+      {
+        row.map((s) => (
+          <span class="glass shrink-0 rounded-full px-4 py-2 text-sm text-[var(--color-muted)]">
+            {s}
+          </span>
+        ))
+      }
+    </div>
+  </div>
+</section>
