@@ -38,3 +38,32 @@
 {"level":"info","message":"Tool call received: av_global_quote","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-04-29T12:33:56.807Z"}
 {"level":"info","message":"Executing price data tool: av_global_quote","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-04-29T12:33:56.807Z"}
 {"level":"info","message":"Tool call completed: av_global_quote","service":"alpha-vantage-mcp","timestamp":"2026-04-29T12:33:57.004Z"}
+{"level":"info","message":"Alpha Vantage MCP Server initialized","service":"alpha-vantage-mcp","timestamp":"2026-06-27T18:35:15.129Z"}
+{"level":"info","message":"Starting Alpha Vantage MCP server...","service":"alpha-vantage-mcp","timestamp":"2026-06-27T18:35:15.132Z"}
+{"level":"info","message":"Alpha Vantage MCP server running with 19 tools available","service":"alpha-vantage-mcp","timestamp":"2026-06-27T18:35:15.134Z"}
+{"level":"info","message":"MCP Server fully operational and staying alive","service":"alpha-vantage-mcp","timestamp":"2026-06-27T18:35:15.134Z"}
+{"level":"info","message":"Tool call received: av_global_quote","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:35:17.611Z"}
+{"level":"info","message":"Executing price data tool: av_global_quote","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:35:17.611Z"}
+{"level":"info","message":"Tool call completed: av_global_quote","service":"alpha-vantage-mcp","timestamp":"2026-06-27T18:35:17.990Z"}
+{"level":"info","message":"Tool call received: av_company_overview","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:35:17.993Z"}
+{"level":"info","message":"Executing intelligence tool: av_company_overview","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:35:17.993Z"}
+{"level":"info","message":"Rate limit reached, waiting 12000ms for next token","service":"alpha-vantage-mcp","timestamp":"2026-06-27T18:35:17.994Z"}
+{"level":"info","message":"Tool call completed: av_company_overview","service":"alpha-vantage-mcp","timestamp":"2026-06-27T18:35:30.134Z"}
+{"level":"info","message":"Tool call received: av_global_quote","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:56:26.443Z"}
+{"level":"info","message":"Executing price data tool: av_global_quote","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:56:26.443Z"}
+{"level":"info","message":"Tool call completed: av_global_quote","service":"alpha-vantage-mcp","timestamp":"2026-06-27T18:56:26.444Z"}
+{"level":"info","message":"Tool call received: av_company_overview","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:56:26.445Z"}
+{"level":"info","message":"Executing intelligence tool: av_company_overview","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:56:26.445Z"}
+{"level":"info","message":"Tool call completed: av_company_overview","service":"alpha-vantage-mcp","timestamp":"2026-06-27T18:56:26.446Z"}
+{"level":"info","message":"Tool call received: av_global_quote","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:56:55.373Z"}
+{"level":"info","message":"Executing price data tool: av_global_quote","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:56:55.373Z"}
+{"level":"info","message":"Tool call completed: av_global_quote","service":"alpha-vantage-mcp","timestamp":"2026-06-27T18:56:55.374Z"}
+{"level":"info","message":"Tool call received: av_company_overview","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:56:55.375Z"}
+{"level":"info","message":"Executing intelligence tool: av_company_overview","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:56:55.375Z"}
+{"level":"info","message":"Tool call completed: av_company_overview","service":"alpha-vantage-mcp","timestamp":"2026-06-27T18:56:55.375Z"}
+{"level":"info","message":"Tool call received: av_global_quote","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:57:53.886Z"}
+{"level":"info","message":"Executing price data tool: av_global_quote","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:57:53.886Z"}
+{"level":"info","message":"Tool call completed: av_global_quote","service":"alpha-vantage-mcp","timestamp":"2026-06-27T18:57:53.886Z"}
+{"level":"info","message":"Tool call received: av_company_overview","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:57:53.888Z"}
+{"level":"info","message":"Executing intelligence tool: av_company_overview","service":"alpha-vantage-mcp","symbol":"AAPL","timestamp":"2026-06-27T18:57:53.888Z"}
+{"level":"info","message":"Tool call completed: av_company_overview","service":"alpha-vantage-mcp","timestamp":"2026-06-27T18:57:53.888Z"}

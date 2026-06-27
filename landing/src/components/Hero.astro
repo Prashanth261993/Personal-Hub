@@ -1,0 +1,96 @@
+---
+const base = import.meta.env.BASE_URL;
+const repo = 'https://github.com/Prashanth261993/Personal-Hub';
+
+const stats = [
+  { value: '4', label: 'Full apps' },
+  { value: '1', label: 'Monorepo' },
+  { value: '20+', label: 'Pages' },
+  { value: '15+', label: 'DB tables' },
+];
+---
+
+<section id="top" class="relative overflow-hidden pt-32 pb-20 sm:pt-40 sm:pb-28">
+  <div class="pointer-events-none absolute inset-0 bg-grid [mask-image:radial-gradient(70%_60%_at_50%_0%,#000_30%,transparent_100%)]"></div>
+  <div class="pointer-events-none absolute inset-0 bg-radial-glow"></div>
+
+  <div class="relative mx-auto max-w-6xl px-5">
+    <div class="mx-auto max-w-3xl text-center">
+      <a
+        href="#apps"
+        class="glass mb-6 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium text-[var(--color-muted)]"
+      >
+        <span class="h-1.5 w-1.5 rounded-full bg-[var(--color-accent-2)]"></span>
+        Net Worth · Stocks · Planning · Funds
+      </a>
+
+      <h1 class="text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
+        One platform for your
+        <br class="hidden sm:block" />
+        <span class="gradient-text">entire financial life</span>
+      </h1>
+
+      <p class="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-[var(--color-muted)] sm:text-lg">
+        Personal Hub is a local-first, full-stack TypeScript monorepo that bundles four
+        production-grade apps — a multi-member net-worth tracker, an AI-assisted stock research
+        workspace, an animated Kanban planner, and a 13F institutional-fund tracker — behind a
+        single elegant interface.
+      </p>
+
+      <div class="mt-9 flex flex-wrap items-center justify-center gap-3">
+        <a
+          href={repo}
+          target="_blank"
+          rel="noopener"
+          class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#7c7cff] to-[#22d3ee] px-5 py-3 text-sm font-semibold text-[#08080c] transition-transform hover:scale-[1.02]"
+        >
+          View source on GitHub
+          <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M13 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+        <a
+          href="#apps"
+          class="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-white/5 px-5 py-3 text-sm font-semibold transition-colors hover:bg-white/10"
+        >
+          Explore the apps
+        </a>
+      </div>
+
+      <dl class="mx-auto mt-12 grid max-w-lg grid-cols-4 gap-4">
+        {
+          stats.map((s) => (
+            <div class="text-center">
+              <dt class="gradient-text text-2xl font-bold sm:text-3xl">{s.value}</dt>
+              <dd class="mt-1 text-xs text-[var(--color-faint)]">{s.label}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+
+    <!-- Hero product shot -->
+    <div class="reveal relative mx-auto mt-16 max-w-5xl">
+      <div class="window-frame">
+        <div class="window-bar flex items-center gap-1.5 px-4 py-2.5">
+          <span class="h-2.5 w-2.5 rounded-full bg-[#ff5f57]"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-[#febc2e]"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-[#28c840]"></span>
+          <span class="ml-3 text-xs text-[var(--color-faint)]">localhost:5173 — Personal Hub</span>
+        </div>
+        <img
+          src={`${base}/shots/networth-dashboard.png`}
+          alt="Personal Hub net-worth dashboard showing combined net worth, trend chart, and asset breakdown"
+          width="1280"
+          height="680"
+          loading="eager"
+          class="block w-full"
+        />
+      </div>
+      <div
+        class="pointer-events-none absolute -inset-x-10 -bottom-10 top-1/2 -z-10 bg-radial-glow blur-2xl"
+      >
+      </div>
+    </div>
+  </div>
+</section>

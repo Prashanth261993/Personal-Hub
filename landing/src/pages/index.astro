@@ -1,0 +1,97 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import Hero from '../components/Hero.astro';
+import TechMarquee from '../components/TechMarquee.astro';
+import AppSection from '../components/AppSection.astro';
+import Architecture from '../components/Architecture.astro';
+import Highlights from '../components/Highlights.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Base>
+  <Nav />
+  <main>
+    <Hero />
+    <TechMarquee />
+
+    <div id="apps" class="scroll-mt-24"></div>
+
+    <AppSection
+      id="networth"
+      eyebrow="Net Worth Tracker"
+      title="Track your whole household's net worth"
+      description="Capture point-in-time snapshots across family members and categories, then watch trends, goals, and insights update automatically. Liabilities, assets, and carry-forward cloning are all built in."
+      features={[
+        'Multi-member, multi-category snapshots with <strong>carry-forward cloning</strong>',
+        'Trend charts and goal tracking (net-worth <em>or</em> per-category targets)',
+        'Auto-generated insights with growth, composition, and milestones',
+        'JSON-config members & categories, data in SQLite',
+      ]}
+      shots={[
+        { src: '/shots/networth-dashboard.png', alt: 'Net worth dashboard with combined total and trend chart', clip: '/clips/networth.webm', gif: '/clips/networth.gif' },
+        { src: '/shots/networth-insights.png', alt: 'Net worth insights view', caption: 'Insights' },
+        { src: '/shots/networth-snapshots.png', alt: 'Snapshot history list', caption: 'Snapshots' },
+      ]}
+    />
+
+    <AppSection
+      id="stocks"
+      eyebrow="Stocks Research Workspace"
+      title="Research stocks with an AI agent at your side"
+      description="A dark-themed research desk with watchlist/holding tracking, live valuation metrics, a rich research journal, and a streaming AI agent that calls real market-data tools over the Model Context Protocol. Sync real holdings securely through Plaid."
+      features={[
+        '<strong>Streaming AI agent</strong> via MCP + GitHub Models with multi-round tool calls',
+        'Alpha Vantage metrics, manual overrides, and version history',
+        'Encrypted <strong>Plaid brokerage sync</strong> with FIFO tax lots',
+        'Tiptap research journal with inline images & price-target charts',
+      ]}
+      reverse
+      shots={[
+        { src: '/shots/stocks-agent.png', alt: 'Streaming AI stock-research agent answering a query', clip: '/clips/agent.webm', gif: '/clips/agent.gif' },
+        { src: '/shots/stocks-detail.png', alt: 'Stock detail page with valuation metrics and research journal', caption: 'Research desk' },
+        { src: '/shots/stocks-dashboard.png', alt: 'Stocks dashboard with upside and filters', caption: 'Dashboard' },
+      ]}
+    />
+
+    <AppSection
+      id="todo"
+      eyebrow="Planning & Todo"
+      title="An ultra-modern planner that feels alive"
+      description="A Kanban board with drag-and-drop across groups, spring-physics stats, recurring tasks, subtasks, and a full calendar where you can reschedule by dragging due dates. Notes are rich-text with images."
+      features={[
+        '<strong>Kanban drag-and-drop</strong> with @dnd-kit and Framer Motion',
+        'Recurring tasks with per-date completion logging',
+        'Drag-to-reschedule <strong>calendar</strong>; detach recurring instances',
+        'Today’s Focus, Overdue & Upcoming, animated completion stats',
+      ]}
+      shots={[
+        { src: '/shots/todo-dashboard.png', alt: 'Todo Kanban board with grouped tasks and stats', clip: '/clips/kanban.webm', gif: '/clips/kanban.gif' },
+        { src: '/shots/todo-calendar.png', alt: 'Drag-to-reschedule planning calendar', caption: 'Calendar · drag to reschedule', clip: '/clips/calendar.webm', gif: '/clips/calendar.gif' },
+      ]}
+    />
+
+    <AppSection
+      id="funds"
+      eyebrow="Funds — 13F Tracker"
+      title="Follow what legendary investors are buying"
+      description="Track institutional 13F filings straight from SEC EDGAR — no API key. See quarter-over-quarter deltas, a cross-fund conviction screener that separates bullish from bearish exposure, and consensus insights across funds."
+      features={[
+        'Free <strong>SEC EDGAR</strong> 13F ingestion with CUSIP→ticker resolution',
+        'Quarter-over-quarter <strong>deltas</strong>: new / add / trim / exit',
+        '<strong>Advanced cross-fund screener</strong> — multi-factor filters, bullish-vs-bearish sentiment split, and <strong>savable presets</strong>',
+        'Consensus, cluster-buys, and bearish-activity <strong>insights</strong>',
+      ]}
+      reverse
+      shots={[
+        { src: '/shots/funds-screener.png', alt: 'Cross-fund 13F screener with multi-factor filters and conviction scores', caption: 'Advanced screener · filters & presets' },
+        { src: '/shots/funds-detail.png', alt: 'Fund holdings detail', caption: 'Holdings & deltas' },
+        { src: '/shots/funds-insights.png', alt: 'Cross-fund insights', caption: 'Insights' },
+      ]}
+    />
+
+    <Architecture />
+    <Highlights />
+  </main>
+  <Footer />
+</Base>

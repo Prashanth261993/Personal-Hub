@@ -1,0 +1,57 @@
+---
+const groups = [
+  {
+    label: 'Frontend',
+    items: [
+      'React 19',
+      'Astro',
+      'Vite',
+      'Tailwind CSS v4',
+      'TanStack Query',
+      'Recharts',
+      '@dnd-kit',
+      'Framer Motion',
+      'Tiptap',
+    ],
+  },
+  {
+    label: 'Backend & Data',
+    items: ['Express', 'Drizzle ORM', 'SQLite', 'date-fns'],
+  },
+  {
+    label: 'AI & Integrations',
+    items: ['Model Context Protocol', 'OpenAI SDK', 'Alpha Vantage', 'Plaid', 'SEC EDGAR'],
+  },
+  {
+    label: 'Language & Tooling',
+    items: ['TypeScript', 'npm workspaces', 'ESM', 'Strict mode'],
+  },
+];
+---
+
+<section id="stack" class="scroll-mt-24 py-16">
+  <div class="mx-auto max-w-6xl px-5">
+    <p class="reveal mb-10 text-center text-xs font-semibold uppercase tracking-widest text-[var(--color-faint)]">
+      Built with a modern, type-safe stack
+    </p>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {
+        groups.map((g) => (
+          <div class="reveal glass rounded-2xl p-5">
+            <h3 class="text-xs font-semibold uppercase tracking-widest text-[var(--color-accent-2)]">
+              {g.label}
+            </h3>
+            <div class="mt-4 flex flex-wrap gap-2">
+              {g.items.map((s) => (
+                <span class="rounded-full border border-[var(--color-border)] bg-white/[0.04] px-3 py-1.5 text-sm text-[var(--color-muted)] transition-colors hover:border-[var(--color-accent)]/50 hover:text-[var(--color-ink)]">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
