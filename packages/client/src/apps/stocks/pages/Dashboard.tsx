@@ -260,9 +260,12 @@ export default function Dashboard() {
 
     return data.rows
       .filter((row) => {
-        // tracking mode
+        // tracking mode — treat a stock with an actual position (shares entered)
+        // as a holding even if its tracking mode is still "watchlist"
+        const hasPosition = (row.stock.sharesMilli ?? 0) > 0;
+        const isHolding = row.stock.trackingMode === 'holding' || row.stock.trackingMode === 'both' || hasPosition;
         if (trackingFilter === 'watchlist' && row.stock.trackingMode !== 'watchlist' && row.stock.trackingMode !== 'both') return false;
-        if (trackingFilter === 'holding' && row.stock.trackingMode !== 'holding' && row.stock.trackingMode !== 'both') return false;
+        if (trackingFilter === 'holding' && !isHolding) return false;
         // search
         if (q && !row.stock.symbol.toLowerCase().includes(q) && !row.stock.companyName.toLowerCase().includes(q)) return false;
         // sector

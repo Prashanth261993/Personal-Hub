@@ -208,7 +208,7 @@ function buildDashboardResponse(): StocksDashboardResponse {
   return {
     summary: {
       totalTracked: rows.length,
-      holdingsCount: rows.filter((row) => row.stock.trackingMode === 'holding' || row.stock.trackingMode === 'both').length,
+      holdingsCount: rows.filter((row) => row.stock.trackingMode === 'holding' || row.stock.trackingMode === 'both' || (row.stock.sharesMilli ?? 0) > 0).length,
       watchlistCount: rows.filter((row) => row.stock.trackingMode === 'watchlist' || row.stock.trackingMode === 'both').length,
       averageUpsidePercent: upsideValues.length > 0 ? Number((upsideValues.reduce((sum, value) => sum + value, 0) / upsideValues.length).toFixed(2)) : null,
       totalPositionValue: rows.reduce((sum, row) => sum + (row.positionValue ?? 0), 0),
