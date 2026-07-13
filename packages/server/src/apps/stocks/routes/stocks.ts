@@ -31,7 +31,7 @@ function normalizeSymbol(symbol: string): string {
   return symbol.trim().toUpperCase();
 }
 
-function createVersionPayload(stock: Stock): StockVersionPayload {
+function createVersionPayload(stock: Stock, metrics: StockMetricsCache | null): StockVersionPayload {
   return {
     symbol: stock.symbol,
     companyName: stock.companyName,
@@ -51,6 +51,7 @@ function createVersionPayload(stock: Stock): StockVersionPayload {
     manualPbRatio: stock.manualPbRatio,
     manualPsRatio: stock.manualPsRatio,
     manualEpsGrowth: stock.manualEpsGrowth,
+    metrics: upsertMetricsSnapshot(stock, metrics),
   };
 }
 
@@ -77,8 +78,18 @@ function upsertMetricsSnapshot(stock: Stock, metrics: StockMetricsCache | null):
     volume: metrics?.volume ?? null,
     latestTradingDay: metrics?.latestTradingDay ?? null,
     peRatio: stock.manualPeRatio ?? metrics?.peRatio ?? null,
+    forwardPe: metrics?.forwardPe ?? null,
+    pegRatio: metrics?.pegRatio ?? null,
     pbRatio: stock.manualPbRatio ?? metrics?.pbRatio ?? null,
     psRatio: stock.manualPsRatio ?? metrics?.psRatio ?? null,
+    evToEbitda: metrics?.evToEbitda ?? null,
+    evToRevenue: metrics?.evToRevenue ?? null,
+    ebitda: metrics?.ebitda ?? null,
+    bookValue: metrics?.bookValue ?? null,
+    dilutedEpsTtm: metrics?.dilutedEpsTtm ?? null,
+    dividendPerShare: metrics?.dividendPerShare ?? null,
+    exDividendDate: metrics?.exDividendDate ?? null,
+    dividendDate: metrics?.dividendDate ?? null,
     epsGrowth: stock.manualEpsGrowth ?? metrics?.epsGrowth ?? null,
     marketCap: metrics?.marketCap ?? null,
     beta: metrics?.beta ?? null,
@@ -96,6 +107,11 @@ function upsertMetricsSnapshot(stock: Stock, metrics: StockMetricsCache | null):
     sharesOutstanding: metrics?.sharesOutstanding ?? null,
     revenueTtm: metrics?.revenueTtm ?? null,
     grossProfitTtm: metrics?.grossProfitTtm ?? null,
+    analystRatingStrongBuy: metrics?.analystRatingStrongBuy ?? null,
+    analystRatingBuy: metrics?.analystRatingBuy ?? null,
+    analystRatingHold: metrics?.analystRatingHold ?? null,
+    analystRatingSell: metrics?.analystRatingSell ?? null,
+    analystRatingStrongSell: metrics?.analystRatingStrongSell ?? null,
   };
 }
 
@@ -129,12 +145,18 @@ function toDashboardRow(stock: Stock, metrics: StockMetricsCache | null): StockD
   };
 }
 
-function writeVersion(stock: Stock, source: StockVersionSource): void {
+function writeVersion(stock: Stock, source: StockVersionSource, metrics?: StockMetricsCache | null): void {
+  const cache = metrics !== undefined
+    ? metrics
+    : (() => {
+        const row = db.select().from(stockMetricsCache).where(eq(stockMetricsCache.stockId, stock.id)).get();
+        return row ? toMetricsCache(row) : null;
+      })();
   db.insert(stockVersions).values({
     id: uuidv4(),
     stockId: stock.id,
     source,
-    payload: JSON.stringify(createVersionPayload(stock)),
+    payload: JSON.stringify(createVersionPayload(stock, cache)),
     createdAt: new Date().toISOString(),
   }).run();
 }
@@ -163,8 +185,18 @@ function buildMetricsCache(stockId: string, existingCache: StockMetricsCache | n
     volume: metrics?.volume ?? existingCache?.volume ?? null,
     latestTradingDay: metrics?.latestTradingDay ?? existingCache?.latestTradingDay ?? null,
     peRatio: metrics?.peRatio ?? existingCache?.peRatio ?? null,
+    forwardPe: metrics?.forwardPe ?? existingCache?.forwardPe ?? null,
+    pegRatio: metrics?.pegRatio ?? existingCache?.pegRatio ?? null,
     pbRatio: metrics?.pbRatio ?? existingCache?.pbRatio ?? null,
     psRatio: metrics?.psRatio ?? existingCache?.psRatio ?? null,
+    evToEbitda: metrics?.evToEbitda ?? existingCache?.evToEbitda ?? null,
+    evToRevenue: metrics?.evToRevenue ?? existingCache?.evToRevenue ?? null,
+    ebitda: metrics?.ebitda ?? existingCache?.ebitda ?? null,
+    bookValue: metrics?.bookValue ?? existingCache?.bookValue ?? null,
+    dilutedEpsTtm: metrics?.dilutedEpsTtm ?? existingCache?.dilutedEpsTtm ?? null,
+    dividendPerShare: metrics?.dividendPerShare ?? existingCache?.dividendPerShare ?? null,
+    exDividendDate: metrics?.exDividendDate ?? existingCache?.exDividendDate ?? null,
+    dividendDate: metrics?.dividendDate ?? existingCache?.dividendDate ?? null,
     epsGrowth: metrics?.epsGrowth ?? existingCache?.epsGrowth ?? null,
     marketCap: metrics?.marketCap ?? existingCache?.marketCap ?? null,
     beta: metrics?.beta ?? existingCache?.beta ?? null,
@@ -182,6 +214,11 @@ function buildMetricsCache(stockId: string, existingCache: StockMetricsCache | n
     sharesOutstanding: metrics?.sharesOutstanding ?? existingCache?.sharesOutstanding ?? null,
     revenueTtm: metrics?.revenueTtm ?? existingCache?.revenueTtm ?? null,
     grossProfitTtm: metrics?.grossProfitTtm ?? existingCache?.grossProfitTtm ?? null,
+    analystRatingStrongBuy: metrics?.analystRatingStrongBuy ?? existingCache?.analystRatingStrongBuy ?? null,
+    analystRatingBuy: metrics?.analystRatingBuy ?? existingCache?.analystRatingBuy ?? null,
+    analystRatingHold: metrics?.analystRatingHold ?? existingCache?.analystRatingHold ?? null,
+    analystRatingSell: metrics?.analystRatingSell ?? existingCache?.analystRatingSell ?? null,
+    analystRatingStrongSell: metrics?.analystRatingStrongSell ?? existingCache?.analystRatingStrongSell ?? null,
     analystRating: metrics?.analystRating ?? existingCache?.analystRating ?? null,
     fetchedAt: metrics ? now : existingCache?.fetchedAt ?? null,
     errorMessage,
@@ -281,8 +318,18 @@ router.post('/lookup', async (req: Request, res: Response) => {
         volume: metrics.volume,
         latestTradingDay: metrics.latestTradingDay,
         peRatio: metrics.peRatio,
+        forwardPe: metrics.forwardPe,
+        pegRatio: metrics.pegRatio,
         pbRatio: metrics.pbRatio,
         psRatio: metrics.psRatio,
+        evToEbitda: metrics.evToEbitda,
+        evToRevenue: metrics.evToRevenue,
+        ebitda: metrics.ebitda,
+        bookValue: metrics.bookValue,
+        dilutedEpsTtm: metrics.dilutedEpsTtm,
+        dividendPerShare: metrics.dividendPerShare,
+        exDividendDate: metrics.exDividendDate,
+        dividendDate: metrics.dividendDate,
         epsGrowth: metrics.epsGrowth,
         marketCap: metrics.marketCap,
         beta: metrics.beta,
@@ -300,6 +347,11 @@ router.post('/lookup', async (req: Request, res: Response) => {
         sharesOutstanding: metrics.sharesOutstanding,
         revenueTtm: metrics.revenueTtm,
         grossProfitTtm: metrics.grossProfitTtm,
+        analystRatingStrongBuy: metrics.analystRatingStrongBuy,
+        analystRatingBuy: metrics.analystRatingBuy,
+        analystRatingHold: metrics.analystRatingHold,
+        analystRatingSell: metrics.analystRatingSell,
+        analystRatingStrongSell: metrics.analystRatingStrongSell,
       },
     };
 
@@ -403,15 +455,34 @@ router.get('/:id/metrics-history', (req: Request, res: Response) => {
 
     const points = versions.map((v) => {
       const p = JSON.parse(v.payload) as StockVersionPayload;
+      const m = p.metrics ?? null;
       return {
         date: v.createdAt.split('T')[0],
         source: v.source,
-        currentPrice: p.manualCurrentPrice,
-        targetPrice: p.manualTargetPrice,
-        peRatio: p.manualPeRatio,
-        pbRatio: p.manualPbRatio,
-        psRatio: p.manualPsRatio,
-        epsGrowth: p.manualEpsGrowth,
+        currentPrice: m?.currentPrice ?? p.manualCurrentPrice,
+        targetPrice: m?.analystTargetPrice ?? p.manualTargetPrice,
+        peRatio: m?.peRatio ?? p.manualPeRatio,
+        forwardPe: m?.forwardPe ?? null,
+        pegRatio: m?.pegRatio ?? null,
+        pbRatio: m?.pbRatio ?? p.manualPbRatio,
+        psRatio: m?.psRatio ?? p.manualPsRatio,
+        evToEbitda: m?.evToEbitda ?? null,
+        evToRevenue: m?.evToRevenue ?? null,
+        ebitda: m?.ebitda ?? null,
+        bookValue: m?.bookValue ?? null,
+        dilutedEpsTtm: m?.dilutedEpsTtm ?? null,
+        dividendPerShare: m?.dividendPerShare ?? null,
+        epsGrowth: m?.epsGrowth ?? p.manualEpsGrowth,
+        marketCap: m?.marketCap ?? null,
+        beta: m?.beta ?? null,
+        dividendYield: m?.dividendYield ?? null,
+        profitMargin: m?.profitMargin ?? null,
+        operatingMarginTtm: m?.operatingMarginTtm ?? null,
+        returnOnAssetsTtm: m?.returnOnAssetsTtm ?? null,
+        returnOnEquityTtm: m?.returnOnEquityTtm ?? null,
+        sharesOutstanding: m?.sharesOutstanding ?? null,
+        revenueTtm: m?.revenueTtm ?? null,
+        grossProfitTtm: m?.grossProfitTtm ?? null,
       };
     });
 
@@ -498,9 +569,10 @@ router.post('/', (req: Request, res: Response) => {
     };
 
     db.insert(stocks).values(stock).run();
-    writeVersion(stock, 'manual');
 
-    // If initial metrics from a lookup are provided, seed the metrics cache
+    // If initial metrics from a lookup are provided, seed the metrics cache first
+    // so the initial version snapshot captures them.
+    let initialCache: StockMetricsCache | null = null;
     if (body.initialMetrics) {
       const cacheRecord: typeof stockMetricsCache.$inferInsert = {
         id: uuidv4(),
@@ -515,7 +587,10 @@ router.post('/', (req: Request, res: Response) => {
         updatedAt: now,
       };
       db.insert(stockMetricsCache).values(cacheRecord).run();
+      initialCache = toMetricsCache(cacheRecord as typeof stockMetricsCache.$inferSelect);
     }
+
+    writeVersion(stock, 'manual', initialCache);
 
     res.status(201).json(stock);
   } catch (err) {
@@ -635,13 +710,13 @@ router.post('/:id/refresh', async (req: Request, res: Response) => {
         || enrichedUpdate.manualTargetPrice !== stock.manualTargetPrice
         || enrichedUpdate.manualPeRatio !== stock.manualPeRatio;
 
-      if (didChange) {
-        const updatedStock: Stock = { ...stock, ...enrichedUpdate };
-        db.update(stocks).set(updatedStock).where(eq(stocks.id, stock.id)).run();
-        writeVersion(updatedStock, 'api-refresh');
-      } else {
-        db.update(stocks).set({ lastSyncedAt: now, updatedAt: now }).where(eq(stocks.id, stock.id)).run();
-      }
+      // Always write an api-refresh version so the metrics snapshot (including
+      // fundamentals like shares outstanding) accumulates a per-refresh time
+      // series. metrics-history dedupes by date, so multiple refreshes in one
+      // day collapse to a single point.
+      const updatedStock: Stock = { ...stock, ...(didChange ? enrichedUpdate : { lastSyncedAt: now, updatedAt: now }) };
+      db.update(stocks).set(updatedStock).where(eq(stocks.id, stock.id)).run();
+      writeVersion(updatedStock, 'api-refresh', cacheRecord);
 
       const response: RefreshStockResponse = {
         stockId: stock.id,

@@ -254,8 +254,18 @@ export interface StockMetricsSnapshot {
   volume: number | null;
   latestTradingDay: string | null;      // YYYY-MM-DD
   peRatio: number | null;
+  forwardPe: number | null;
+  pegRatio: number | null;
   pbRatio: number | null;
   psRatio: number | null;
+  evToEbitda: number | null;
+  evToRevenue: number | null;
+  ebitda: number | null;                // USD
+  bookValue: number | null;             // cents (per share)
+  dilutedEpsTtm: number | null;         // cents (per share)
+  dividendPerShare: number | null;      // cents (per share)
+  exDividendDate: string | null;        // YYYY-MM-DD
+  dividendDate: string | null;          // YYYY-MM-DD
   epsGrowth: number | null;             // percentage, e.g. 12.4
   marketCap: number | null;             // USD
   beta: number | null;
@@ -273,6 +283,11 @@ export interface StockMetricsSnapshot {
   sharesOutstanding: number | null;
   revenueTtm: number | null;            // USD
   grossProfitTtm: number | null;        // USD
+  analystRatingStrongBuy: number | null;   // analyst count
+  analystRatingBuy: number | null;
+  analystRatingHold: number | null;
+  analystRatingSell: number | null;
+  analystRatingStrongSell: number | null;
 }
 
 export interface Stock {
@@ -320,8 +335,18 @@ export interface StockMetricsCache {
   volume: number | null;
   latestTradingDay: string | null;
   peRatio: number | null;
+  forwardPe: number | null;
+  pegRatio: number | null;
   pbRatio: number | null;
   psRatio: number | null;
+  evToEbitda: number | null;
+  evToRevenue: number | null;
+  ebitda: number | null;                // USD
+  bookValue: number | null;             // cents (per share)
+  dilutedEpsTtm: number | null;         // cents (per share)
+  dividendPerShare: number | null;      // cents (per share)
+  exDividendDate: string | null;
+  dividendDate: string | null;
   epsGrowth: number | null;             // percentage
   marketCap: number | null;             // USD
   beta: number | null;
@@ -339,6 +364,11 @@ export interface StockMetricsCache {
   sharesOutstanding: number | null;
   revenueTtm: number | null;
   grossProfitTtm: number | null;
+  analystRatingStrongBuy: number | null;
+  analystRatingBuy: number | null;
+  analystRatingHold: number | null;
+  analystRatingSell: number | null;
+  analystRatingStrongSell: number | null;
   analystRating: string | null;
   fetchedAt: string | null;
   errorMessage: string | null;
@@ -383,6 +413,9 @@ export interface StockVersionPayload {
   manualPbRatio: number | null;
   manualPsRatio: number | null;
   manualEpsGrowth: number | null;
+  /** Point-in-time snapshot of the effective metrics when this version was written.
+   *  Optional because versions created before this field existed will not have it. */
+  metrics?: StockMetricsSnapshot | null;
 }
 
 export interface CreateStockRequest {
@@ -569,9 +602,27 @@ export interface MetricsHistoryPoint {
   currentPrice: number | null;    // cents
   targetPrice: number | null;     // cents
   peRatio: number | null;
+  forwardPe: number | null;
+  pegRatio: number | null;
   pbRatio: number | null;
   psRatio: number | null;
+  evToEbitda: number | null;
+  evToRevenue: number | null;
+  ebitda: number | null;          // USD
+  bookValue: number | null;       // cents
+  dilutedEpsTtm: number | null;   // cents
+  dividendPerShare: number | null;// cents
   epsGrowth: number | null;       // percentage
+  marketCap: number | null;       // USD
+  beta: number | null;
+  dividendYield: number | null;   // percentage
+  profitMargin: number | null;    // percentage
+  operatingMarginTtm: number | null; // percentage
+  returnOnAssetsTtm: number | null;  // percentage
+  returnOnEquityTtm: number | null;  // percentage
+  sharesOutstanding: number | null;
+  revenueTtm: number | null;      // USD
+  grossProfitTtm: number | null;  // USD
 }
 
 // ── Stocks Agent Types ──
