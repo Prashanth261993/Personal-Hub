@@ -122,8 +122,13 @@ export default function StockDetail() {
               <div className="stocks-metric-tile"><span>Position Value</span><strong>{stock.positionValue !== null ? formatCurrency(stock.positionValue) : '—'}</strong></div>
               <div className="stocks-metric-tile"><span>Market Cap</span><strong>{formatCompactMetric(stock.effectiveMetrics.marketCap)}</strong></div>
               <div className="stocks-metric-tile"><span>P/E</span><strong>{formatMetric(stock.effectiveMetrics.peRatio)}</strong></div>
+              <div className="stocks-metric-tile"><span>Fwd P/E</span><strong>{formatMetric(stock.effectiveMetrics.forwardPe)}</strong></div>
+              <div className="stocks-metric-tile"><span>PEG</span><strong>{formatMetric(stock.effectiveMetrics.pegRatio)}</strong></div>
               <div className="stocks-metric-tile"><span>P/B</span><strong>{formatMetric(stock.effectiveMetrics.pbRatio)}</strong></div>
               <div className="stocks-metric-tile"><span>P/S</span><strong>{formatMetric(stock.effectiveMetrics.psRatio)}</strong></div>
+              <div className="stocks-metric-tile"><span>EV/EBITDA</span><strong>{formatMetric(stock.effectiveMetrics.evToEbitda)}</strong></div>
+              <div className="stocks-metric-tile"><span>EV/Revenue</span><strong>{formatMetric(stock.effectiveMetrics.evToRevenue)}</strong></div>
+              <div className="stocks-metric-tile"><span>Book Value</span><strong>{stock.effectiveMetrics.bookValue !== null ? formatCurrency(stock.effectiveMetrics.bookValue) : '—'}</strong></div>
               <div className="stocks-metric-tile"><span>Beta</span><strong>{formatMetric(stock.effectiveMetrics.beta)}</strong></div>
               <div className="stocks-metric-tile"><span>52W High</span><strong>{stock.effectiveMetrics.fiftyTwoWeekHigh !== null ? formatCurrency(stock.effectiveMetrics.fiftyTwoWeekHigh) : '—'}</strong></div>
               <div className="stocks-metric-tile"><span>52W Low</span><strong>{stock.effectiveMetrics.fiftyTwoWeekLow !== null ? formatCurrency(stock.effectiveMetrics.fiftyTwoWeekLow) : '—'}</strong></div>
@@ -137,19 +142,55 @@ export default function StockDetail() {
             <h2 className="stocks-panel-title">Growth And Returns</h2>
             <div className="grid grid-cols-2 gap-3 mt-5">
               <div className="stocks-metric-tile"><span>EPS Growth</span><strong>{stock.effectiveMetrics.epsGrowth !== null ? formatPercent(stock.effectiveMetrics.epsGrowth) : '—'}</strong></div>
+              <div className="stocks-metric-tile"><span>Diluted EPS</span><strong>{stock.effectiveMetrics.dilutedEpsTtm !== null ? formatCurrency(stock.effectiveMetrics.dilutedEpsTtm) : '—'}</strong></div>
               <div className="stocks-metric-tile"><span>Revenue Growth</span><strong>{stock.effectiveMetrics.quarterlyRevenueGrowthYoy !== null ? formatPercent(stock.effectiveMetrics.quarterlyRevenueGrowthYoy) : '—'}</strong></div>
               <div className="stocks-metric-tile"><span>Earnings Growth</span><strong>{stock.effectiveMetrics.quarterlyEarningsGrowthYoy !== null ? formatPercent(stock.effectiveMetrics.quarterlyEarningsGrowthYoy) : '—'}</strong></div>
               <div className="stocks-metric-tile"><span>Dividend Yield</span><strong>{stock.effectiveMetrics.dividendYield !== null ? formatPercent(stock.effectiveMetrics.dividendYield) : '—'}</strong></div>
+              <div className="stocks-metric-tile"><span>Dividend/Share</span><strong>{stock.effectiveMetrics.dividendPerShare !== null ? formatCurrency(stock.effectiveMetrics.dividendPerShare) : '—'}</strong></div>
               <div className="stocks-metric-tile"><span>Profit Margin</span><strong>{stock.effectiveMetrics.profitMargin !== null ? formatPercent(stock.effectiveMetrics.profitMargin) : '—'}</strong></div>
               <div className="stocks-metric-tile"><span>Op Margin</span><strong>{stock.effectiveMetrics.operatingMarginTtm !== null ? formatPercent(stock.effectiveMetrics.operatingMarginTtm) : '—'}</strong></div>
               <div className="stocks-metric-tile"><span>ROA</span><strong>{stock.effectiveMetrics.returnOnAssetsTtm !== null ? formatPercent(stock.effectiveMetrics.returnOnAssetsTtm) : '—'}</strong></div>
               <div className="stocks-metric-tile"><span>ROE</span><strong>{stock.effectiveMetrics.returnOnEquityTtm !== null ? formatPercent(stock.effectiveMetrics.returnOnEquityTtm) : '—'}</strong></div>
+              <div className="stocks-metric-tile"><span>EBITDA</span><strong>{formatCompactMetric(stock.effectiveMetrics.ebitda)}</strong></div>
               <div className="stocks-metric-tile"><span>Shares Out</span><strong>{formatCompactMetric(stock.effectiveMetrics.sharesOutstanding)}</strong></div>
               <div className="stocks-metric-tile"><span>Revenue TTM</span><strong>{formatCompactMetric(stock.effectiveMetrics.revenueTtm)}</strong></div>
               <div className="stocks-metric-tile"><span>Gross Profit</span><strong>{formatCompactMetric(stock.effectiveMetrics.grossProfitTtm)}</strong></div>
             </div>
           </div>
       </div>
+
+      {/* Analyst consensus */}
+      {(() => {
+        const em = stock.effectiveMetrics;
+        const buckets = [
+          { label: 'Strong Buy', value: em.analystRatingStrongBuy, color: '#16a34a' },
+          { label: 'Buy', value: em.analystRatingBuy, color: '#4ade80' },
+          { label: 'Hold', value: em.analystRatingHold, color: '#facc15' },
+          { label: 'Sell', value: em.analystRatingSell, color: '#fb923c' },
+          { label: 'Strong Sell', value: em.analystRatingStrongSell, color: '#ef4444' },
+        ];
+        const total = buckets.reduce((sum, b) => sum + (b.value ?? 0), 0);
+        if (total === 0) return null;
+        return (
+          <div className="stocks-panel">
+            <p className="stocks-eyebrow">Analyst Consensus</p>
+            <h2 className="stocks-panel-title mb-4">Wall Street Ratings ({total} analysts)</h2>
+            <div className="flex h-3 w-full overflow-hidden rounded-full">
+              {buckets.map((b) => (b.value ?? 0) > 0 && (
+                <div key={b.label} style={{ width: `${((b.value ?? 0) / total) * 100}%`, background: b.color }} />
+              ))}
+            </div>
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {buckets.map((b) => (
+                <div key={b.label} className="stocks-metric-tile">
+                  <span style={{ color: b.color }}>{b.label}</span>
+                  <strong>{formatIntegerMetric(b.value)}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Analytics Charts */}
       {metricsHistory && metricsHistory.length > 0 && (

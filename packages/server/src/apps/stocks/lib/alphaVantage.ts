@@ -5,10 +5,25 @@ interface AlphaVantageOverviewResponse {
   Sector?: string;
   Industry?: string;
   PERatio?: string;
+  ForwardPE?: string;
+  PEGRatio?: string;
   PriceToBookRatio?: string;
   PriceToSalesRatioTTM?: string;
+  EVToEBITDA?: string;
+  EVToRevenue?: string;
+  EBITDA?: string;
+  BookValue?: string;
   EPS?: string;
+  DilutedEPSTTM?: string;
+  DividendPerShare?: string;
+  ExDividendDate?: string;
+  DividendDate?: string;
   AnalystTargetPrice?: string;
+  AnalystRatingStrongBuy?: string;
+  AnalystRatingBuy?: string;
+  AnalystRatingHold?: string;
+  AnalystRatingSell?: string;
+  AnalystRatingStrongSell?: string;
   Beta?: string;
   MarketCapitalization?: string;
   '52WeekHigh'?: string;
@@ -57,8 +72,18 @@ export interface AlphaVantageMetricsResult {
   volume: number | null;
   latestTradingDay: string | null;
   peRatio: number | null;
+  forwardPe: number | null;
+  pegRatio: number | null;
   pbRatio: number | null;
   psRatio: number | null;
+  evToEbitda: number | null;
+  evToRevenue: number | null;
+  ebitda: number | null;
+  bookValue: number | null;
+  dilutedEpsTtm: number | null;
+  dividendPerShare: number | null;
+  exDividendDate: string | null;
+  dividendDate: string | null;
   epsGrowth: number | null;
   marketCap: number | null;
   beta: number | null;
@@ -76,6 +101,11 @@ export interface AlphaVantageMetricsResult {
   sharesOutstanding: number | null;
   revenueTtm: number | null;
   grossProfitTtm: number | null;
+  analystRatingStrongBuy: number | null;
+  analystRatingBuy: number | null;
+  analystRatingHold: number | null;
+  analystRatingSell: number | null;
+  analystRatingStrongSell: number | null;
   analystRating: string | null;
 }
 
@@ -179,8 +209,18 @@ export async function fetchAlphaVantageMetrics(symbol: string): Promise<AlphaVan
     volume: parseNumber(quote['Global Quote']?.['06. volume']),
     latestTradingDay: quote['Global Quote']?.['07. latest trading day'] ?? null,
     peRatio,
+    forwardPe: parseNumber(overview.ForwardPE),
+    pegRatio: parseNumber(overview.PEGRatio),
     pbRatio: parseNumber(overview.PriceToBookRatio),
     psRatio: parseNumber(overview.PriceToSalesRatioTTM),
+    evToEbitda: parseNumber(overview.EVToEBITDA),
+    evToRevenue: parseNumber(overview.EVToRevenue),
+    ebitda: parseNumber(overview.EBITDA),
+    bookValue: dollarsToCentsValue(parseNumber(overview.BookValue)),
+    dilutedEpsTtm: dollarsToCentsValue(parseNumber(overview.DilutedEPSTTM)),
+    dividendPerShare: dollarsToCentsValue(parseNumber(overview.DividendPerShare)),
+    exDividendDate: overview.ExDividendDate && overview.ExDividendDate !== 'None' ? overview.ExDividendDate : null,
+    dividendDate: overview.DividendDate && overview.DividendDate !== 'None' ? overview.DividendDate : null,
     epsGrowth: deriveEpsGrowthPercent(epsValue, peRatio),
     marketCap: parseNumber(overview.MarketCapitalization),
     beta: parseNumber(overview.Beta),
@@ -198,6 +238,11 @@ export async function fetchAlphaVantageMetrics(symbol: string): Promise<AlphaVan
     sharesOutstanding: parseNumber(overview.SharesOutstanding),
     revenueTtm: parseNumber(overview.RevenueTTM),
     grossProfitTtm: parseNumber(overview.GrossProfitTTM),
+    analystRatingStrongBuy: parseNumber(overview.AnalystRatingStrongBuy),
+    analystRatingBuy: parseNumber(overview.AnalystRatingBuy),
+    analystRatingHold: parseNumber(overview.AnalystRatingHold),
+    analystRatingSell: parseNumber(overview.AnalystRatingSell),
+    analystRatingStrongSell: parseNumber(overview.AnalystRatingStrongSell),
     analystRating: overview.AnalystTargetPrice ? 'target-available' : null,
   };
 }

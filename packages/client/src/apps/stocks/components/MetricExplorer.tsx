@@ -10,28 +10,52 @@ interface MetricExplorerProps {
 interface MetricOption {
   key: keyof MetricsHistoryPoint;
   label: string;
-  format: 'currency' | 'ratio' | 'percent';
+  format: 'currency' | 'ratio' | 'percent' | 'compact' | 'count';
   color: string;
 }
 
 const METRICS: MetricOption[] = [
-  { key: 'peRatio', label: 'P/E Ratio', format: 'ratio', color: '#f59e0b' },
-  { key: 'pbRatio', label: 'P/B Ratio', format: 'ratio', color: '#a78bfa' },
-  { key: 'psRatio', label: 'P/S Ratio', format: 'ratio', color: '#fb923c' },
-  { key: 'epsGrowth', label: 'EPS Growth', format: 'percent', color: '#34d399' },
   { key: 'currentPrice', label: 'Share Price', format: 'currency', color: '#5ec8ff' },
   { key: 'targetPrice', label: 'Target Price', format: 'currency', color: '#53f2c8' },
+  { key: 'peRatio', label: 'P/E Ratio', format: 'ratio', color: '#f59e0b' },
+  { key: 'forwardPe', label: 'Forward P/E', format: 'ratio', color: '#fbbf24' },
+  { key: 'pegRatio', label: 'PEG Ratio', format: 'ratio', color: '#f97316' },
+  { key: 'pbRatio', label: 'P/B Ratio', format: 'ratio', color: '#a78bfa' },
+  { key: 'psRatio', label: 'P/S Ratio', format: 'ratio', color: '#fb923c' },
+  { key: 'evToEbitda', label: 'EV / EBITDA', format: 'ratio', color: '#c084fc' },
+  { key: 'evToRevenue', label: 'EV / Revenue', format: 'ratio', color: '#e879f9' },
+  { key: 'epsGrowth', label: 'EPS Growth', format: 'percent', color: '#34d399' },
+  { key: 'dilutedEpsTtm', label: 'Diluted EPS (TTM)', format: 'currency', color: '#4ade80' },
+  { key: 'bookValue', label: 'Book Value / Share', format: 'currency', color: '#2dd4bf' },
+  { key: 'dividendPerShare', label: 'Dividend / Share', format: 'currency', color: '#22d3ee' },
+  { key: 'dividendYield', label: 'Dividend Yield', format: 'percent', color: '#38bdf8' },
+  { key: 'profitMargin', label: 'Profit Margin', format: 'percent', color: '#60a5fa' },
+  { key: 'operatingMarginTtm', label: 'Operating Margin', format: 'percent', color: '#818cf8' },
+  { key: 'returnOnEquityTtm', label: 'Return on Equity', format: 'percent', color: '#a3e635' },
+  { key: 'returnOnAssetsTtm', label: 'Return on Assets', format: 'percent', color: '#bef264' },
+  { key: 'beta', label: 'Beta', format: 'ratio', color: '#f472b6' },
+  { key: 'marketCap', label: 'Market Cap', format: 'compact', color: '#facc15' },
+  { key: 'ebitda', label: 'EBITDA', format: 'compact', color: '#fde047' },
+  { key: 'revenueTtm', label: 'Revenue (TTM)', format: 'compact', color: '#7dd3fc' },
+  { key: 'grossProfitTtm', label: 'Gross Profit (TTM)', format: 'compact', color: '#5eead4' },
+  { key: 'sharesOutstanding', label: 'Shares Outstanding', format: 'count', color: '#cbd5e1' },
 ];
+
+const compactFmt = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 });
 
 function formatValue(value: number, format: MetricOption['format']): string {
   if (format === 'currency') return `$${centsToDollars(value).toFixed(2)}`;
   if (format === 'percent') return `${value.toFixed(1)}%`;
+  if (format === 'compact') return `$${compactFmt.format(value)}`;
+  if (format === 'count') return compactFmt.format(value);
   return value.toFixed(2);
 }
 
 function formatAxisValue(value: number, format: MetricOption['format']): string {
   if (format === 'currency') return `$${centsToDollars(value).toFixed(0)}`;
   if (format === 'percent') return `${value.toFixed(0)}%`;
+  if (format === 'compact') return `$${compactFmt.format(value)}`;
+  if (format === 'count') return compactFmt.format(value);
   return value.toFixed(1);
 }
 

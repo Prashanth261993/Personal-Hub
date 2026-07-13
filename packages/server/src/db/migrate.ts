@@ -117,8 +117,18 @@ export function runMigrations() {
       volume INTEGER,
       latest_trading_day TEXT,
       pe_ratio REAL,
+      forward_pe REAL,
+      peg_ratio REAL,
       pb_ratio REAL,
       ps_ratio REAL,
+      ev_to_ebitda REAL,
+      ev_to_revenue REAL,
+      ebitda REAL,
+      book_value INTEGER,
+      diluted_eps_ttm INTEGER,
+      dividend_per_share INTEGER,
+      ex_dividend_date TEXT,
+      dividend_date TEXT,
       eps_growth REAL,
       market_cap REAL,
       beta REAL,
@@ -136,6 +146,11 @@ export function runMigrations() {
       shares_outstanding REAL,
       revenue_ttm REAL,
       gross_profit_ttm REAL,
+      analyst_rating_strong_buy INTEGER,
+      analyst_rating_buy INTEGER,
+      analyst_rating_hold INTEGER,
+      analyst_rating_sell INTEGER,
+      analyst_rating_strong_sell INTEGER,
       analyst_rating TEXT,
       fetched_at TEXT,
       error_message TEXT,
@@ -288,6 +303,21 @@ export function runMigrations() {
   ensureColumn('stock_metrics_cache', 'shares_outstanding', 'REAL');
   ensureColumn('stock_metrics_cache', 'revenue_ttm', 'REAL');
   ensureColumn('stock_metrics_cache', 'gross_profit_ttm', 'REAL');
+  ensureColumn('stock_metrics_cache', 'forward_pe', 'REAL');
+  ensureColumn('stock_metrics_cache', 'peg_ratio', 'REAL');
+  ensureColumn('stock_metrics_cache', 'ev_to_ebitda', 'REAL');
+  ensureColumn('stock_metrics_cache', 'ev_to_revenue', 'REAL');
+  ensureColumn('stock_metrics_cache', 'ebitda', 'REAL');
+  ensureColumn('stock_metrics_cache', 'book_value', 'INTEGER');
+  ensureColumn('stock_metrics_cache', 'diluted_eps_ttm', 'INTEGER');
+  ensureColumn('stock_metrics_cache', 'dividend_per_share', 'INTEGER');
+  ensureColumn('stock_metrics_cache', 'ex_dividend_date', 'TEXT');
+  ensureColumn('stock_metrics_cache', 'dividend_date', 'TEXT');
+  ensureColumn('stock_metrics_cache', 'analyst_rating_strong_buy', 'INTEGER');
+  ensureColumn('stock_metrics_cache', 'analyst_rating_buy', 'INTEGER');
+  ensureColumn('stock_metrics_cache', 'analyst_rating_hold', 'INTEGER');
+  ensureColumn('stock_metrics_cache', 'analyst_rating_sell', 'INTEGER');
+  ensureColumn('stock_metrics_cache', 'analyst_rating_strong_sell', 'INTEGER');
 
   // Plaid integration columns on stocks
   ensureColumn('stocks', 'plaid_account_id', 'TEXT');

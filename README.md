@@ -2,6 +2,8 @@
 
 A personal productivity platform with a modular app architecture. React SPA frontend + Express/SQLite backend in an npm workspaces monorepo. Single-user, local-first — no authentication.
 
+**🌐 Landing page:** [prashanth261993.github.io/Personal-Hub](https://prashanth261993.github.io/Personal-Hub/) — a marketing/overview site for the project, built with Astro and deployed to GitHub Pages (source in [`landing/`](landing/)).
+
 ## Apps
 
 | App | Route | Description | Status |
