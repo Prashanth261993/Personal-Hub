@@ -98,9 +98,10 @@ export interface Goal {
   id: string;
   name: string;
   targetValue: number;   // cents
-  targetDate: string;    // ISO date
-  targetType?: 'netWorth' | 'category'; // defaults to 'netWorth'
+  targetDate?: string;   // ISO date (optional for custom goals)
+  targetType?: 'netWorth' | 'category' | 'custom'; // defaults to 'netWorth'
   categoryId?: string;   // required when targetType === 'category'
+  currentValue?: number; // cents — manually tracked progress, used when targetType === 'custom'
   createdAt: string;
 }
 

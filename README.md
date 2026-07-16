@@ -74,7 +74,7 @@ npm install
 
 ### 2. Start the app
 
-If you want manual Alpha Vantage refreshes in the Stocks app, create a local `.env` from `.env.example` and set `ALPHA_VANTAGE_API_KEY` before starting the server. To enable the AI-powered Stock Research Agent, also set `GITHUB_MODELS_TOKEN` (a GitHub PAT with `models:read` permission). To enable Plaid brokerage sync, set `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`, and `PLAID_ENCRYPTION_KEY` (a 64-character hex key used to AES-256-GCM encrypt stored access tokens).
+If you want manual Alpha Vantage refreshes in the Stocks app, create a local `.env` from `.env.example` and set `ALPHA_VANTAGE_API_KEY` before starting the server. To survive the free tier's 25-requests/day cap, set `ALPHA_VANTAGE_API_KEYS` to a comma-separated pool of keys instead — the server rotates to the next key when one hits its daily limit and auto-resets each key at midnight ET. To enable the AI-powered Stock Research Agent, also set `GITHUB_MODELS_TOKEN` (a GitHub PAT with `models:read` permission). To enable Plaid brokerage sync, set `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`, and `PLAID_ENCRYPTION_KEY` (a 64-character hex key used to AES-256-GCM encrypt stored access tokens).
 
 The Funds app needs no API key — it reads filings directly from the free SEC EDGAR endpoints. SEC requires a descriptive `User-Agent` header and asks clients to stay under 10 requests/second; the EDGAR client sets a `PersonalHub/1.0` User-Agent and serializes requests with a minimum interval to comply.
 

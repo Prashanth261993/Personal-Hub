@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchTrends, fetchInsightsSummary, fetchMembers, fetchGoals, updateGoals, fetchSnapshots, fetchCategories } from '../api';
 import { centsToDollars, dollarsToCents, formatCurrency } from '@networth/shared';
 import type { Goal } from '@networth/shared';
-import { TrendingUp, Target, BarChart3, PieChart as PieChartIcon, Plus, Trash2 } from 'lucide-react';
+import { TrendingUp, Target, BarChart3, PieChart as PieChartIcon, Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 import ConfirmModal from '../../../components/ConfirmModal';
 import {
   LineChart,
@@ -318,8 +318,11 @@ function GoalTracker({ summary, trends }: { summary: any; trends: any[] }) {
   const [newName, setNewName] = useState('');
   const [newTarget, setNewTarget] = useState('');
   const [newDate, setNewDate] = useState('');
-  const [newTargetType, setNewTargetType] = useState<'netWorth' | 'category'>('netWorth');
+  const [newTargetType, setNewTargetType] = useState<'netWorth' | 'category' | 'custom'>('netWorth');
   const [newCategoryId, setNewCategoryId] = useState('');
+  const [newCurrentValue, setNewCurrentValue] = useState('');
+  const [editProgressId, setEditProgressId] = useState<string | null>(null);
+  const [editProgressValue, setEditProgressValue] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const mutation = useMutation({
@@ -329,15 +332,16 @@ function GoalTracker({ summary, trends }: { summary: any; trends: any[] }) {
   });
 
   const addGoal = () => {
-    if (!newName || !newTarget || !newDate) return;
+    if (!newName || !newTarget) return;
     if (newTargetType === 'category' && !newCategoryId) return;
     const goal: Goal = {
       id: `goal-${Date.now()}`,
       name: newName,
       targetValue: dollarsToCents(parseFloat(newTarget)),
-      targetDate: newDate,
+      ...(newDate ? { targetDate: newDate } : {}),
       targetType: newTargetType,
       ...(newTargetType === 'category' ? { categoryId: newCategoryId } : {}),
+      ...(newTargetType === 'custom' ? { currentValue: dollarsToCents(parseFloat(newCurrentValue || '0')) } : {}),
       createdAt: new Date().toISOString(),
     };
     mutation.mutate({ goals: [...goals, goal] });
@@ -346,6 +350,7 @@ function GoalTracker({ summary, trends }: { summary: any; trends: any[] }) {
     setNewDate('');
     setNewTargetType('netWorth');
     setNewCategoryId('');
+    setNewCurrentValue('');
     setShowAdd(false);
   };
 
@@ -353,9 +358,24 @@ function GoalTracker({ summary, trends }: { summary: any; trends: any[] }) {
     mutation.mutate({ goals: goals.filter((g) => g.id !== id) });
   };
 
+  const startEditProgress = (goal: Goal) => {
+    setEditProgressId(goal.id);
+    setEditProgressValue(goal.currentValue ? centsToDollars(goal.currentValue).toString() : '');
+  };
+
+  const saveProgress = (goal: Goal) => {
+    const cents = dollarsToCents(parseFloat(editProgressValue || '0'));
+    mutation.mutate({ goals: goals.map((g) => (g.id === goal.id ? { ...g, currentValue: cents } : g)) });
+    setEditProgressId(null);
+    setEditProgressValue('');
+  };
+
   const currentNetWorth = summary?.currentNetWorth || 0;
 
   function getCurrentValue(goal: Goal): number {
+    if (goal.targetType === 'custom') {
+      return goal.currentValue ?? 0;
+    }
     if (goal.targetType === 'category' && goal.categoryId) {
       const cat = (summary?.byCategory || []).find((c: any) => c.categoryId === goal.categoryId);
       return cat ? Math.abs(cat.total) : 0;
@@ -375,6 +395,7 @@ function GoalTracker({ summary, trends }: { summary: any; trends: any[] }) {
 
   // Calculate projected date to reach goal based on average growth
   function projectedDate(goal: Goal): string | null {
+    if (goal.targetType === 'custom') return null;
     if (trends.length < 2) return null;
 
     const isLiability = isLiabilityGoal(goal);
@@ -440,10 +461,13 @@ function GoalTracker({ summary, trends }: { summary: any; trends: any[] }) {
           <div>
             <label className="block text-xs text-gray-500 mb-1">Track</label>
             <select
-              value={newTargetType === 'category' ? newCategoryId : 'netWorth'}
+              value={newTargetType === 'custom' ? 'custom' : newTargetType === 'category' ? newCategoryId : 'netWorth'}
               onChange={(e) => {
                 if (e.target.value === 'netWorth') {
                   setNewTargetType('netWorth');
+                  setNewCategoryId('');
+                } else if (e.target.value === 'custom') {
+                  setNewTargetType('custom');
                   setNewCategoryId('');
                 } else {
                   setNewTargetType('category');
@@ -453,6 +477,7 @@ function GoalTracker({ summary, trends }: { summary: any; trends: any[] }) {
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
             >
               <option value="netWorth">Total Net Worth</option>
+              <option value="custom">Custom (manual)</option>
               {allCategories.length > 0 && (
                 <>
                   <optgroup label="Asset Categories">
@@ -479,8 +504,20 @@ function GoalTracker({ summary, trends }: { summary: any; trends: any[] }) {
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-32"
             />
           </div>
+          {newTargetType === 'custom' && (
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Currently met ($)</label>
+              <input
+                type="number"
+                value={newCurrentValue}
+                onChange={(e) => setNewCurrentValue(e.target.value)}
+                placeholder="0"
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-32"
+              />
+            </div>
+          )}
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Target Date</label>
+            <label className="block text-xs text-gray-500 mb-1">Target Date{newTargetType === 'custom' ? ' (optional)' : ''}</label>
             <input
               type="date"
               value={newDate}
@@ -518,8 +555,11 @@ function GoalTracker({ summary, trends }: { summary: any; trends: any[] }) {
                     {catName && (
                       <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{catName}</span>
                     )}
+                    {goal.targetType === 'custom' && (
+                      <span className="text-xs bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full">Custom</span>
+                    )}
                     <span className="text-sm text-gray-400">
-                      Target: {formatCurrency(goal.targetValue)} by {goal.targetDate}
+                      Target: {formatCurrency(goal.targetValue)}{goal.targetDate ? ` by ${goal.targetDate}` : ''}
                     </span>
                   </div>
                   <button onClick={() => setConfirmDeleteId(goal.id)} className="text-gray-400 hover:text-danger-500">
@@ -535,14 +575,43 @@ function GoalTracker({ summary, trends }: { summary: any; trends: any[] }) {
                     }}
                   />
                 </div>
-                <div className="flex justify-between text-xs text-gray-500">
+                <div className="flex justify-between items-center text-xs text-gray-500">
                   <span>
                     {isLiability
                       ? `${formatCurrency(current * 100)} remaining / ${formatCurrency(goal.targetValue)} target (${progress.toFixed(1)}%)`
                       : `${formatCurrency(current)} / ${formatCurrency(goal.targetValue)} (${progress.toFixed(1)}%)`
                     }
                   </span>
-                  {projected && <span>Projected: {projected}</span>}
+                  {goal.targetType === 'custom' ? (
+                    editProgressId === goal.id ? (
+                      <span className="flex items-center gap-1">
+                        <span className="text-gray-400">$</span>
+                        <input
+                          type="number"
+                          autoFocus
+                          value={editProgressValue}
+                          onChange={(e) => setEditProgressValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveProgress(goal);
+                            if (e.key === 'Escape') setEditProgressId(null);
+                          }}
+                          className="w-24 px-2 py-1 border border-gray-300 rounded text-xs"
+                        />
+                        <button onClick={() => saveProgress(goal)} className="text-success-600 hover:text-success-700" title="Save">
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => setEditProgressId(null)} className="text-gray-400 hover:text-gray-600" title="Cancel">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </span>
+                    ) : (
+                      <button onClick={() => startEditProgress(goal)} className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 font-medium">
+                        <Pencil className="w-3.5 h-3.5" /> Update progress
+                      </button>
+                    )
+                  ) : (
+                    projected && <span>Projected: {projected}</span>
+                  )}
                 </div>
               </div>
             );

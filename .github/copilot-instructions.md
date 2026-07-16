@@ -48,7 +48,7 @@ PersonalHub/
 - `npm run dev` — starts both server (tsx watch) and client (Vite) via concurrently (`--raw` mode to avoid tsx watch output buffering)
 - `npm run build` — builds all packages in dependency order
 - `npm run db:studio` — opens Drizzle Studio to browse the SQLite database
-- Copy `.env.example` to `.env` and set `ALPHA_VANTAGE_API_KEY` to enable manual stock metric refreshes. Set `GITHUB_MODELS_TOKEN` (GitHub PAT with `models:read`) to enable the Stock Research Agent. Set `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`, and `PLAID_ENCRYPTION_KEY` (64-char hex, used for AES-256-GCM token encryption) to enable Plaid brokerage sync. Server startup loads the repo root `.env` first, then `packages/server/.env`.
+- Copy `.env.example` to `.env` and set `ALPHA_VANTAGE_API_KEY` to enable manual stock metric refreshes (or `ALPHA_VANTAGE_API_KEYS`, a comma-separated pool that the server rotates through when a key hits its 25/day limit — see the Stocks section). Set `GITHUB_MODELS_TOKEN` (GitHub PAT with `models:read`) to enable the Stock Research Agent. Set `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`, and `PLAID_ENCRYPTION_KEY` (64-char hex, used for AES-256-GCM token encryption) to enable Plaid brokerage sync. Server startup loads the repo root `.env` first, then `packages/server/.env`.
 
 ## Documentation Maintenance
 
@@ -193,7 +193,7 @@ Unique indexes on `funds.cik` and `fund_filings.accession_number`; indexes on `f
 ## Data Model Notes
 
 ### Net Worth
-- **Goals** support two target types: `'netWorth'` (total net worth) or `'category'` (specific asset/liability category by `categoryId`). Default is `'netWorth'` for backward compatibility. Goals are stored in `config/networth/goals.json`, not the database.
+- **Goals** support three target types: `'netWorth'` (total net worth), `'category'` (specific asset/liability category by `categoryId`, progress derived from `summary.byCategory`), or `'custom'` (free-form goal with a manually-entered `currentValue` in cents — e.g. "Invest $10k in Robotics ETF"; not tied to snapshots, no projected date, `targetDate` optional). Default is `'netWorth'` for backward compatibility. Goals are stored in `config/networth/goals.json`, not the database; the PUT route validates that each goal has a `name` + numeric `targetValue` and that category goals include a `categoryId`.
 - **Carry-forward**: Cloning a snapshot pre-fills all entries from a previous snapshot so the user only updates changed values.
 - **Snapshot entries** reference `memberId` and `categoryId` by string ID — these IDs come from the JSON config, not the database.
 
@@ -211,6 +211,7 @@ Unique indexes on `funds.cik` and `fund_filings.accession_number`; indexes on `f
 - **Tracking modes**: A stock can be a watchlist idea, a holding, or both.
 - **Version history**: Every save writes a full payload snapshot into `stock_versions`; the `stocks` table stores the latest editable state for fast reads.
 - **Alpha Vantage refresh**: Manual refresh only. `POST /api/stocks/:id/refresh` updates `stock_metrics_cache` and may append an `api-refresh` version when metadata changes.
+- **Multi-key rotation**: `lib/alphaVantage.ts` holds an in-memory key pool from `ALPHA_VANTAGE_API_KEYS` (comma-separated; falls back to `ALPHA_VANTAGE_API_KEY`). `fetchAlphaVantageFunction(symbol, fn)` iterates the pool: a daily-limit response (`Information`) marks that key `exhaustedOn` today's **ET** date and rotates to the next key; a per-minute `Note` rotates without marking exhausted. Keys auto-reset when the ET date rolls over. When all keys are spent it throws `AlphaVantageAllKeysExhaustedError`. Keys are never logged (only last-4 masked).
 - **No manual metric overrides**: Alpha Vantage (the `stock_metrics_cache`) is the **single source** of key metrics. `effectiveMetrics` = the cache directly (`upsertMetricsSnapshot(metrics)`); there is no manual price/target/PE/PB/PS/EPS entry. The `manual_*` columns remain in the DB schema but are dormant (always `null`, never read or written).
 - **Notes editor**: Stocks use a promoted full-width Research Journal panel (TiptapEditor with image/link support) below the form grid on the Stock Detail page. Images are stored as base64 in `notes_html`.
 - **Stocks dashboard**: `/stocks` shows active tracked names, derived upside percentage, refresh state, and position value. Supports search, 18 sort options, sector filter, 9 range filters, and custom saved presets (`config/stocks/presets.json`).

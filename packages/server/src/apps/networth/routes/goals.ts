@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import type { Goal } from '@networth/shared';
 import { getGoals, saveGoals } from '../../../lib/config.js';
 
 const router = Router();
@@ -21,6 +22,18 @@ router.put('/', (req: Request, res: Response) => {
       res.status(400).json({ error: 'Invalid config: goals array required' });
       return;
     }
+
+    for (const goal of config.goals as Goal[]) {
+      if (!goal.name || typeof goal.targetValue !== 'number') {
+        res.status(400).json({ error: 'Each goal requires a name and numeric targetValue' });
+        return;
+      }
+      if (goal.targetType === 'category' && !goal.categoryId) {
+        res.status(400).json({ error: 'Category goals require a categoryId' });
+        return;
+      }
+    }
+
     saveGoals(config);
     res.json(config);
   } catch (err) {

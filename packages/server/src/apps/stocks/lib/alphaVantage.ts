@@ -133,13 +133,56 @@ function dollarsToCentsValue(value: number | null): number | null {
   return value === null ? null : Math.round(value * 100);
 }
 
-async function fetchAlphaVantageFunction<T>(symbol: string, fn: string, apiKey: string): Promise<T> {
-  const params = new URLSearchParams({
-    function: fn,
-    symbol,
-    apikey: apiKey,
-  });
+// ── Multi-key rotation ──────────────────────────────────────────────
+// Alpha Vantage free-tier keys are capped at 25 requests/day. Configure a pool
+// via ALPHA_VANTAGE_API_KEYS (comma-separated); ALPHA_VANTAGE_API_KEY is still
+// honored as a single-key fallback. When a key reports its daily limit it is
+// marked exhausted for the rest of the day (US Eastern, when AV resets) and
+// requests transparently fall through to the next available key.
 
+interface AlphaVantageKeyState {
+  key: string;
+  /** ET date (YYYY-MM-DD) on which this key hit its daily limit, or null. */
+  exhaustedOn: string | null;
+}
+
+let keyPool: AlphaVantageKeyState[] | null = null;
+
+function etDateString(date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+function loadKeyPool(): AlphaVantageKeyState[] {
+  if (keyPool) return keyPool;
+  const raw = process.env.ALPHA_VANTAGE_API_KEYS ?? process.env.ALPHA_VANTAGE_API_KEY ?? '';
+  const keys = Array.from(new Set(raw.split(',').map((k) => k.trim()).filter(Boolean)));
+  keyPool = keys.map((key) => ({ key, exhaustedOn: null }));
+  return keyPool;
+}
+
+/** Rate-limit signal that should trigger rotation to another key. */
+class AlphaVantageRateLimitError extends Error {
+  constructor(message: string, readonly daily: boolean) {
+    super(message);
+    this.name = 'AlphaVantageRateLimitError';
+  }
+}
+
+/** Thrown when every configured key has hit its daily limit. */
+export class AlphaVantageAllKeysExhaustedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AlphaVantageAllKeysExhaustedError';
+  }
+}
+
+async function rawAlphaVantageCall<T>(symbol: string, fn: string, apiKey: string): Promise<T> {
+  const params = new URLSearchParams({ function: fn, symbol, apikey: apiKey });
   const response = await fetch(`https://www.alphavantage.co/query?${params.toString()}`);
 
   if (!response.ok) {
@@ -148,12 +191,14 @@ async function fetchAlphaVantageFunction<T>(symbol: string, fn: string, apiKey: 
 
   const payload = await response.json() as Record<string, unknown>;
 
-  if (typeof payload.Note === 'string') {
-    throw new Error(payload.Note);
+  // Daily cap (e.g. "...25 requests per day...") → mark this key exhausted.
+  if (typeof payload.Information === 'string') {
+    throw new AlphaVantageRateLimitError(payload.Information, true);
   }
 
-  if (typeof payload.Information === 'string') {
-    throw new Error(payload.Information);
+  // Per-minute throttle → transient; rotate but keep the key usable later.
+  if (typeof payload.Note === 'string') {
+    throw new AlphaVantageRateLimitError(payload.Note, false);
   }
 
   if (typeof payload['Error Message'] === 'string') {
@@ -170,17 +215,51 @@ async function fetchAlphaVantageFunction<T>(symbol: string, fn: string, apiKey: 
   return payload as T;
 }
 
-export async function fetchAlphaVantageMetrics(symbol: string): Promise<AlphaVantageMetricsResult> {
-  const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
-
-  if (!apiKey) {
-    throw new Error('ALPHA_VANTAGE_API_KEY is not configured');
+async function fetchAlphaVantageFunction<T>(symbol: string, fn: string): Promise<T> {
+  const pool = loadKeyPool();
+  if (pool.length === 0) {
+    throw new Error('No Alpha Vantage API key configured (set ALPHA_VANTAGE_API_KEYS or ALPHA_VANTAGE_API_KEY)');
   }
 
+  const today = etDateString();
+  let lastRateLimit: AlphaVantageRateLimitError | null = null;
+
+  for (const state of pool) {
+    // Auto-reset a key that was exhausted on a previous day.
+    if (state.exhaustedOn && state.exhaustedOn !== today) {
+      state.exhaustedOn = null;
+    }
+    if (state.exhaustedOn === today) continue;
+
+    try {
+      return await rawAlphaVantageCall<T>(symbol, fn, state.key);
+    } catch (err) {
+      if (err instanceof AlphaVantageRateLimitError) {
+        lastRateLimit = err;
+        const masked = `...${state.key.slice(-4)}`;
+        if (err.daily) {
+          state.exhaustedOn = today;
+          console.warn(`Alpha Vantage key ${masked} hit its daily limit; rotating to the next key.`);
+        } else {
+          console.warn(`Alpha Vantage key ${masked} throttled (per-minute); trying the next key.`);
+        }
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw new AlphaVantageAllKeysExhaustedError(
+    lastRateLimit?.message
+      ?? 'All Alpha Vantage API keys have hit their daily limit. Add more keys or retry after midnight ET.',
+  );
+}
+
+export async function fetchAlphaVantageMetrics(symbol: string): Promise<AlphaVantageMetricsResult> {
   const normalizedSymbol = symbol.trim().toUpperCase();
-  const overview = await fetchAlphaVantageFunction<AlphaVantageOverviewResponse>(normalizedSymbol, 'OVERVIEW', apiKey);
+  const overview = await fetchAlphaVantageFunction<AlphaVantageOverviewResponse>(normalizedSymbol, 'OVERVIEW');
   await new Promise((resolve) => setTimeout(resolve, 1500));
-  const quote = await fetchAlphaVantageFunction<AlphaVantageQuoteResponse>(normalizedSymbol, 'GLOBAL_QUOTE', apiKey);
+  const quote = await fetchAlphaVantageFunction<AlphaVantageQuoteResponse>(normalizedSymbol, 'GLOBAL_QUOTE');
 
   const peRatio = parseNumber(overview.PERatio);
 

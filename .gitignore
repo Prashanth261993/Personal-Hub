@@ -15,6 +15,9 @@ data/*.db-journal
 data/*.db-wal
 data/*.db-shm
 
+# Generated stock research reports (personal analysis)
+research/
+
 # Environment
 .env
 .env.local

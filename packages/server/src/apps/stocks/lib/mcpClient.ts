@@ -8,9 +8,11 @@ let toolsCache: Array<{ name: string; description?: string; inputSchema: Record<
 async function ensureConnected(): Promise<Client> {
   if (client) return client;
 
-  const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+  // Accept either the singular key or the first entry of the rotation pool.
+  const apiKey = process.env.ALPHA_VANTAGE_API_KEY
+    ?? process.env.ALPHA_VANTAGE_API_KEYS?.split(',').map((k) => k.trim()).find(Boolean);
   if (!apiKey) {
-    throw new Error('ALPHA_VANTAGE_API_KEY is not set — cannot start MCP server');
+    throw new Error('No Alpha Vantage API key set (ALPHA_VANTAGE_API_KEY or ALPHA_VANTAGE_API_KEYS) — cannot start MCP server');
   }
 
   transport = new StdioClientTransport({
