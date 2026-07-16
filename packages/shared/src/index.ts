@@ -407,12 +407,6 @@ export interface StockVersionPayload {
   sharesMilli: number | null;
   averageCostBasis: number | null;
   conviction: string | null;
-  manualTargetPrice: number | null;
-  manualCurrentPrice: number | null;
-  manualPeRatio: number | null;
-  manualPbRatio: number | null;
-  manualPsRatio: number | null;
-  manualEpsGrowth: number | null;
   /** Point-in-time snapshot of the effective metrics when this version was written.
    *  Optional because versions created before this field existed will not have it. */
   metrics?: StockMetricsSnapshot | null;
@@ -431,12 +425,6 @@ export interface CreateStockRequest {
   sharesMilli?: number | null;
   averageCostBasis?: number | null;
   conviction?: string | null;
-  manualTargetPrice?: number | null;
-  manualCurrentPrice?: number | null;
-  manualPeRatio?: number | null;
-  manualPbRatio?: number | null;
-  manualPsRatio?: number | null;
-  manualEpsGrowth?: number | null;
   /** Full metrics snapshot from a lookup — saved to stock_metrics_cache on create */
   initialMetrics?: StockMetricsSnapshot;
   initialAnalystRating?: string | null;
@@ -500,6 +488,7 @@ export interface StockPresetRangeFilter {
 export interface StockPresetFilters {
   upsidePercent?: StockPresetRangeFilter;
   peRatio?: StockPresetRangeFilter;
+  pegRatio?: StockPresetRangeFilter;
   pbRatio?: StockPresetRangeFilter;
   epsGrowth?: StockPresetRangeFilter;
   dividendYield?: StockPresetRangeFilter;

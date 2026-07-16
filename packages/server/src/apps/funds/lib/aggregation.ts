@@ -155,8 +155,8 @@ export function buildMetricsMap(stockIds: string[]): Map<string, ScreenerMetrics
       .where(eq(stockMetricsCache.stockId, id))
       .get();
 
-    const currentPriceCents = stock.manualCurrentPrice ?? cache?.currentPrice ?? null;
-    const targetPriceCents = stock.manualTargetPrice ?? cache?.analystTargetPrice ?? null;
+    const currentPriceCents = cache?.currentPrice ?? null;
+    const targetPriceCents = cache?.analystTargetPrice ?? null;
     const upsidePct =
       currentPriceCents && currentPriceCents > 0 && targetPriceCents != null
         ? ((targetPriceCents - currentPriceCents) / currentPriceCents) * 100
@@ -166,10 +166,10 @@ export function buildMetricsMap(stockIds: string[]): Map<string, ScreenerMetrics
       currentPriceCents,
       targetPriceCents,
       upsidePct,
-      peRatio: stock.manualPeRatio ?? cache?.peRatio ?? null,
-      pbRatio: stock.manualPbRatio ?? cache?.pbRatio ?? null,
-      psRatio: stock.manualPsRatio ?? cache?.psRatio ?? null,
-      epsGrowth: stock.manualEpsGrowth ?? cache?.epsGrowth ?? null,
+      peRatio: cache?.peRatio ?? null,
+      pbRatio: cache?.pbRatio ?? null,
+      psRatio: cache?.psRatio ?? null,
+      epsGrowth: cache?.epsGrowth ?? null,
       marketCap: cache?.marketCap ?? null,
       beta: cache?.beta ?? null,
     });

@@ -45,13 +45,7 @@ function createVersionPayload(stock: Stock, metrics: StockMetricsCache | null): 
     sharesMilli: stock.sharesMilli,
     averageCostBasis: stock.averageCostBasis,
     conviction: stock.conviction,
-    manualTargetPrice: stock.manualTargetPrice,
-    manualCurrentPrice: stock.manualCurrentPrice,
-    manualPeRatio: stock.manualPeRatio,
-    manualPbRatio: stock.manualPbRatio,
-    manualPsRatio: stock.manualPsRatio,
-    manualEpsGrowth: stock.manualEpsGrowth,
-    metrics: upsertMetricsSnapshot(stock, metrics),
+    metrics: upsertMetricsSnapshot(metrics),
   };
 }
 
@@ -65,23 +59,23 @@ function parseVersionRow(row: { id: string; stockId: string; source: StockVersio
   };
 }
 
-function upsertMetricsSnapshot(stock: Stock, metrics: StockMetricsCache | null): StockMetricsSnapshot {
+function upsertMetricsSnapshot(metrics: StockMetricsCache | null): StockMetricsSnapshot {
   return {
     openPrice: metrics?.openPrice ?? null,
     highPrice: metrics?.highPrice ?? null,
     lowPrice: metrics?.lowPrice ?? null,
-    currentPrice: stock.manualCurrentPrice ?? metrics?.currentPrice ?? null,
+    currentPrice: metrics?.currentPrice ?? null,
     previousClosePrice: metrics?.previousClosePrice ?? null,
     priceChange: metrics?.priceChange ?? null,
     priceChangePercent: metrics?.priceChangePercent ?? null,
-    analystTargetPrice: stock.manualTargetPrice ?? metrics?.analystTargetPrice ?? null,
+    analystTargetPrice: metrics?.analystTargetPrice ?? null,
     volume: metrics?.volume ?? null,
     latestTradingDay: metrics?.latestTradingDay ?? null,
-    peRatio: stock.manualPeRatio ?? metrics?.peRatio ?? null,
+    peRatio: metrics?.peRatio ?? null,
     forwardPe: metrics?.forwardPe ?? null,
     pegRatio: metrics?.pegRatio ?? null,
-    pbRatio: stock.manualPbRatio ?? metrics?.pbRatio ?? null,
-    psRatio: stock.manualPsRatio ?? metrics?.psRatio ?? null,
+    pbRatio: metrics?.pbRatio ?? null,
+    psRatio: metrics?.psRatio ?? null,
     evToEbitda: metrics?.evToEbitda ?? null,
     evToRevenue: metrics?.evToRevenue ?? null,
     ebitda: metrics?.ebitda ?? null,
@@ -90,7 +84,7 @@ function upsertMetricsSnapshot(stock: Stock, metrics: StockMetricsCache | null):
     dividendPerShare: metrics?.dividendPerShare ?? null,
     exDividendDate: metrics?.exDividendDate ?? null,
     dividendDate: metrics?.dividendDate ?? null,
-    epsGrowth: stock.manualEpsGrowth ?? metrics?.epsGrowth ?? null,
+    epsGrowth: metrics?.epsGrowth ?? null,
     marketCap: metrics?.marketCap ?? null,
     beta: metrics?.beta ?? null,
     fiftyTwoWeekHigh: metrics?.fiftyTwoWeekHigh ?? null,
@@ -132,7 +126,7 @@ function computePositionValue(stock: Stock, snapshot: StockMetricsSnapshot): num
 }
 
 function toDashboardRow(stock: Stock, metrics: StockMetricsCache | null): StockDashboardRow {
-  const effectiveMetrics = upsertMetricsSnapshot(stock, metrics);
+  const effectiveMetrics = upsertMetricsSnapshot(metrics);
 
   return {
     stock,
@@ -403,7 +397,7 @@ router.get('/:id/lots', (req: Request, res: Response) => {
 
     // Get effective current price for gain/loss computation
     const metricsRow = db.select().from(stockMetricsCache).where(eq(stockMetricsCache.stockId, stock.id)).get();
-    const currentPriceCents = stock.manualCurrentPrice ?? metricsRow?.currentPrice ?? null;
+    const currentPriceCents = metricsRow?.currentPrice ?? null;
 
     const lots = db.select().from(stockLots)
       .where(eq(stockLots.stockId, stock.id))
@@ -459,20 +453,20 @@ router.get('/:id/metrics-history', (req: Request, res: Response) => {
       return {
         date: v.createdAt.split('T')[0],
         source: v.source,
-        currentPrice: m?.currentPrice ?? p.manualCurrentPrice,
-        targetPrice: m?.analystTargetPrice ?? p.manualTargetPrice,
-        peRatio: m?.peRatio ?? p.manualPeRatio,
+        currentPrice: m?.currentPrice ?? null,
+        targetPrice: m?.analystTargetPrice ?? null,
+        peRatio: m?.peRatio ?? null,
         forwardPe: m?.forwardPe ?? null,
         pegRatio: m?.pegRatio ?? null,
-        pbRatio: m?.pbRatio ?? p.manualPbRatio,
-        psRatio: m?.psRatio ?? p.manualPsRatio,
+        pbRatio: m?.pbRatio ?? null,
+        psRatio: m?.psRatio ?? null,
         evToEbitda: m?.evToEbitda ?? null,
         evToRevenue: m?.evToRevenue ?? null,
         ebitda: m?.ebitda ?? null,
         bookValue: m?.bookValue ?? null,
         dilutedEpsTtm: m?.dilutedEpsTtm ?? null,
         dividendPerShare: m?.dividendPerShare ?? null,
-        epsGrowth: m?.epsGrowth ?? p.manualEpsGrowth,
+        epsGrowth: m?.epsGrowth ?? null,
         marketCap: m?.marketCap ?? null,
         beta: m?.beta ?? null,
         dividendYield: m?.dividendYield ?? null,
@@ -511,7 +505,7 @@ router.get('/:id', (req: Request, res: Response) => {
     const metricsRow = db.select().from(stockMetricsCache).where(eq(stockMetricsCache.stockId, stock.id)).get() ?? null;
     const metrics = metricsRow ? toMetricsCache(metricsRow) : null;
     const history = db.select().from(stockVersions).where(eq(stockVersions.stockId, stock.id)).orderBy(desc(stockVersions.createdAt)).all().map(parseVersionRow);
-    const effectiveMetrics = upsertMetricsSnapshot(stock, metrics);
+    const effectiveMetrics = upsertMetricsSnapshot(metrics);
 
     const detail: StockDetail = {
       ...stock,
@@ -553,12 +547,12 @@ router.post('/', (req: Request, res: Response) => {
       sharesMilli: body.sharesMilli ?? null,
       averageCostBasis: body.averageCostBasis ?? null,
       conviction: body.conviction ?? null,
-      manualTargetPrice: body.manualTargetPrice ?? null,
-      manualCurrentPrice: body.manualCurrentPrice ?? null,
-      manualPeRatio: body.manualPeRatio ?? null,
-      manualPbRatio: body.manualPbRatio ?? null,
-      manualPsRatio: body.manualPsRatio ?? null,
-      manualEpsGrowth: body.manualEpsGrowth ?? null,
+      manualTargetPrice: null,
+      manualCurrentPrice: null,
+      manualPeRatio: null,
+      manualPbRatio: null,
+      manualPsRatio: null,
+      manualEpsGrowth: null,
       lastManualUpdateAt: now,
       lastSyncedAt: null,
       plaidAccountId: null,
@@ -626,12 +620,6 @@ router.put('/:id', (req: Request, res: Response) => {
       sharesMilli: body.sharesMilli !== undefined ? body.sharesMilli : existing.sharesMilli,
       averageCostBasis: body.averageCostBasis !== undefined ? body.averageCostBasis : existing.averageCostBasis,
       conviction: body.conviction !== undefined ? body.conviction : existing.conviction,
-      manualTargetPrice: body.manualTargetPrice !== undefined ? body.manualTargetPrice : existing.manualTargetPrice,
-      manualCurrentPrice: body.manualCurrentPrice !== undefined ? body.manualCurrentPrice : existing.manualCurrentPrice,
-      manualPeRatio: body.manualPeRatio !== undefined ? body.manualPeRatio : existing.manualPeRatio,
-      manualPbRatio: body.manualPbRatio !== undefined ? body.manualPbRatio : existing.manualPbRatio,
-      manualPsRatio: body.manualPsRatio !== undefined ? body.manualPsRatio : existing.manualPsRatio,
-      manualEpsGrowth: body.manualEpsGrowth !== undefined ? body.manualEpsGrowth : existing.manualEpsGrowth,
       lastManualUpdateAt: source === 'manual' ? now : existing.lastManualUpdateAt,
       lastSyncedAt: source === 'api-refresh' ? now : existing.lastSyncedAt,
       updatedAt: now,
@@ -686,18 +674,16 @@ router.post('/:id/refresh', async (req: Request, res: Response) => {
         db.insert(stockMetricsCache).values(cacheRecord).run();
       }
 
+      // A refresh only updates the metrics cache and enriches missing metadata.
+      // It must NOT write into the manual_* override columns — those are
+      // user-controlled. effectiveMetrics already falls back to the fresh cache
+      // when a manual override is null (see upsertMetricsSnapshot), so the API
+      // price is reflected without clobbering or resurrecting manual values.
       const enrichedUpdate: Partial<Stock> = {
         companyName: stock.companyName || metrics.companyName || stock.companyName,
         exchange: stock.exchange ?? metrics.exchange,
         sector: stock.sector ?? metrics.sector,
         industry: stock.industry ?? metrics.industry,
-        // Update manual override fields from API so effectiveMetrics reflects fresh data
-        manualCurrentPrice: metrics.currentPrice ?? stock.manualCurrentPrice,
-        manualTargetPrice: metrics.analystTargetPrice ?? stock.manualTargetPrice,
-        manualPeRatio: metrics.peRatio ?? stock.manualPeRatio,
-        manualPbRatio: metrics.pbRatio ?? stock.manualPbRatio,
-        manualPsRatio: metrics.psRatio ?? stock.manualPsRatio,
-        manualEpsGrowth: metrics.epsGrowth ?? stock.manualEpsGrowth,
         lastSyncedAt: now,
         updatedAt: now,
       };
@@ -705,10 +691,7 @@ router.post('/:id/refresh', async (req: Request, res: Response) => {
       const didChange = enrichedUpdate.exchange !== stock.exchange
         || enrichedUpdate.sector !== stock.sector
         || enrichedUpdate.industry !== stock.industry
-        || enrichedUpdate.companyName !== stock.companyName
-        || enrichedUpdate.manualCurrentPrice !== stock.manualCurrentPrice
-        || enrichedUpdate.manualTargetPrice !== stock.manualTargetPrice
-        || enrichedUpdate.manualPeRatio !== stock.manualPeRatio;
+        || enrichedUpdate.companyName !== stock.companyName;
 
       // Always write an api-refresh version so the metrics snapshot (including
       // fundamentals like shares outstanding) accumulates a per-refresh time

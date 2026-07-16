@@ -7,9 +7,10 @@ import {
   SlidersHorizontal, Trash2, TrendingDown, TrendingUp, WalletCards, Eye, X, Zap,
 } from 'lucide-react';
 import type { StockDashboardRow, StockPreset, StockPresetFilters } from '@networth/shared';
-import { createStockPreset, deleteStockPreset, fetchStockPresets, fetchStocksDashboard } from '../api';
+import { createStockPreset, deleteStock, deleteStockPreset, fetchStockPresets, fetchStocksDashboard } from '../api';
 import { formatCurrency, formatPercent } from '@networth/shared';
 import { useStocksTheme } from '../useStocksTheme';
+import ConfirmModal from '../../../components/ConfirmModal';
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -18,7 +19,7 @@ import { useStocksTheme } from '../useStocksTheme';
 type TrackingFilter = 'all' | 'watchlist' | 'holding';
 
 type SortField =
-  | 'upsidePercent' | 'peRatio' | 'epsGrowth' | 'marketCap'
+  | 'upsidePercent' | 'peRatio' | 'pegRatio' | 'epsGrowth' | 'marketCap'
   | 'positionValue' | 'currentPrice' | 'beta' | 'dividendYield'
   | 'profitMargin' | 'returnOnEquityTtm' | 'updatedAt' | 'lastSyncedAt' | 'companyName';
 
@@ -38,6 +39,7 @@ interface RangeFilter {
 interface AdvancedFilters {
   upsidePercent: RangeFilter;
   peRatio: RangeFilter;
+  pegRatio: RangeFilter;
   pbRatio: RangeFilter;
   epsGrowth: RangeFilter;
   dividendYield: RangeFilter;
@@ -56,6 +58,8 @@ const SORT_OPTIONS: SortOption[] = [
   { field: 'upsidePercent', direction: 'asc', label: 'Upside % — lowest first (overvalued)' },
   { field: 'peRatio', direction: 'asc', label: 'P/E — cheapest earnings' },
   { field: 'peRatio', direction: 'desc', label: 'P/E — most expensive' },
+  { field: 'pegRatio', direction: 'asc', label: 'PEG — cheapest growth' },
+  { field: 'pegRatio', direction: 'desc', label: 'PEG — most expensive growth' },
   { field: 'epsGrowth', direction: 'desc', label: 'EPS Growth — fastest' },
   { field: 'marketCap', direction: 'desc', label: 'Market Cap — largest' },
   { field: 'positionValue', direction: 'desc', label: 'Position Value — biggest' },
@@ -77,6 +81,7 @@ const EMPTY_RANGE: RangeFilter = { min: '', max: '' };
 const EMPTY_ADVANCED: AdvancedFilters = {
   upsidePercent: EMPTY_RANGE,
   peRatio: EMPTY_RANGE,
+  pegRatio: EMPTY_RANGE,
   pbRatio: EMPTY_RANGE,
   epsGrowth: EMPTY_RANGE,
   dividendYield: EMPTY_RANGE,
@@ -89,6 +94,7 @@ const EMPTY_ADVANCED: AdvancedFilters = {
 const RANGE_FIELD_LABELS: Record<keyof AdvancedFilters, string> = {
   upsidePercent: 'Upside %',
   peRatio: 'P/E',
+  pegRatio: 'PEG',
   pbRatio: 'P/B',
   epsGrowth: 'EPS Growth %',
   dividendYield: 'Div Yield %',
@@ -112,6 +118,7 @@ function getMetricValue(row: StockDashboardRow, field: SortField): number | stri
     case 'positionValue': return row.positionValue;
     case 'currentPrice': return row.metrics.currentPrice;
     case 'peRatio': return row.metrics.peRatio;
+    case 'pegRatio': return row.metrics.pegRatio;
     case 'epsGrowth': return row.metrics.epsGrowth;
     case 'marketCap': return row.metrics.marketCap;
     case 'beta': return row.metrics.beta;
@@ -193,6 +200,16 @@ export default function Dashboard() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['stock-presets'] }),
   });
 
+  const deleteStockMutation = useMutation({
+    mutationFn: deleteStock,
+    meta: { successMessage: 'Stock removed' },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stocks-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['stocks-summary'] });
+      setPendingDelete(null);
+    },
+  });
+
   // --- state ---
   const [trackingFilter, setTrackingFilter] = useState<TrackingFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -202,7 +219,7 @@ export default function Dashboard() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [savePresetName, setSavePresetName] = useState('');
   const [showSaveForm, setShowSaveForm] = useState(false);
-
+  const [pendingDelete, setPendingDelete] = useState<StockDashboardRow | null>(null);
   // derived
   const activeSort = SORT_OPTIONS[sortIndex];
   const activeFilterCount = countActiveFilters(advancedFilters);
@@ -273,6 +290,7 @@ export default function Dashboard() {
         // advanced ranges
         if (!passesRange(row.upsidePercent, advancedFilters.upsidePercent)) return false;
         if (!passesRange(row.metrics.peRatio, advancedFilters.peRatio)) return false;
+        if (!passesRange(row.metrics.pegRatio, advancedFilters.pegRatio)) return false;
         if (!passesRange(row.metrics.pbRatio, advancedFilters.pbRatio)) return false;
         if (!passesRange(row.metrics.epsGrowth, advancedFilters.epsGrowth)) return false;
         if (!passesRange(row.metrics.dividendYield, advancedFilters.dividendYield)) return false;
@@ -567,7 +585,17 @@ export default function Dashboard() {
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.03, duration: 0.35 }}
+                  className="relative group"
                 >
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setPendingDelete(row); }}
+                    className="absolute top-4 right-4 z-10 p-1.5 rounded-lg text-[var(--stocks-text-muted)] hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                    title={`Remove ${row.stock.symbol}`}
+                    aria-label={`Remove ${row.stock.symbol}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                   <Link to={`/stocks/${row.stock.id}`} className="stocks-card block">
                     <div className="flex items-start justify-between gap-4">
                       <div>
@@ -607,6 +635,7 @@ export default function Dashboard() {
                       <div className="flex items-center gap-4 text-sm text-[var(--stocks-text-muted)]">
                         <span>P/B {formatMetric(row.metrics.pbRatio)}</span>
                         <span>P/S {formatMetric(row.metrics.psRatio)}</span>
+                        <span>PEG {formatMetric(row.metrics.pegRatio)}</span>
                         <span>{row.positionValue !== null ? `Value ${formatCurrency(row.positionValue)}` : 'No position size'}</span>
                         <span className="inline-flex items-center gap-1"><Clock3 className="w-3 h-3" />{row.lastFetchedAt ? new Date(row.lastFetchedAt).toLocaleDateString() : 'Never synced'}</span>
                       </div>
@@ -622,6 +651,15 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={pendingDelete !== null}
+        title="Remove stock"
+        message={pendingDelete ? `Remove ${pendingDelete.stock.symbol} (${pendingDelete.stock.companyName}) from your tracked list? This deletes its thesis, notes, and version history.` : ''}
+        confirmLabel="Remove"
+        onConfirm={() => pendingDelete && deleteStockMutation.mutate(pendingDelete.stock.id)}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 }

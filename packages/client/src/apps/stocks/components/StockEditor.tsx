@@ -26,12 +26,6 @@ interface StockFormState {
   notesHtml: string;
   shares: string;
   averageCostBasis: string;
-  manualCurrentPrice: string;
-  manualTargetPrice: string;
-  manualPeRatio: string;
-  manualPbRatio: string;
-  manualPsRatio: string;
-  manualEpsGrowth: string;
 }
 
 function toDollars(cents: number | null | undefined): string {
@@ -45,15 +39,6 @@ function fromDollars(value: string): number | null {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.round(parsed * 100) : null;
-}
-
-function fromNumber(value: string): number | null {
-  if (!value.trim()) {
-    return null;
-  }
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function fromShares(value: string): number | null {
@@ -79,12 +64,6 @@ function createInitialState(stock?: StockDetail | null): StockFormState {
     notesHtml: stock?.notesHtml ?? '',
     shares: stock?.sharesMilli ? (stock.sharesMilli / 1000).toString() : '',
     averageCostBasis: toDollars(stock?.averageCostBasis),
-    manualCurrentPrice: toDollars(stock?.manualCurrentPrice),
-    manualTargetPrice: toDollars(stock?.manualTargetPrice),
-    manualPeRatio: stock?.manualPeRatio?.toString() ?? '',
-    manualPbRatio: stock?.manualPbRatio?.toString() ?? '',
-    manualPsRatio: stock?.manualPsRatio?.toString() ?? '',
-    manualEpsGrowth: stock?.manualEpsGrowth?.toString() ?? '',
   };
 }
 
@@ -117,12 +96,6 @@ export default function StockEditor({ stock, saving = false, refreshing = false,
       exchange: current.exchange.trim() ? current.exchange : result.exchange ?? current.exchange,
       sector: current.sector.trim() ? current.sector : result.sector ?? current.sector,
       industry: current.industry.trim() ? current.industry : result.industry ?? current.industry,
-      manualCurrentPrice: current.manualCurrentPrice.trim() ? current.manualCurrentPrice : toDollars(result.metrics.currentPrice),
-      manualTargetPrice: current.manualTargetPrice.trim() ? current.manualTargetPrice : toDollars(result.metrics.analystTargetPrice),
-      manualPeRatio: current.manualPeRatio.trim() ? current.manualPeRatio : result.metrics.peRatio?.toString() ?? '',
-      manualPbRatio: current.manualPbRatio.trim() ? current.manualPbRatio : result.metrics.pbRatio?.toString() ?? '',
-      manualPsRatio: current.manualPsRatio.trim() ? current.manualPsRatio : result.metrics.psRatio?.toString() ?? '',
-      manualEpsGrowth: current.manualEpsGrowth.trim() ? current.manualEpsGrowth : result.metrics.epsGrowth?.toString() ?? '',
     }));
   };
 
@@ -142,12 +115,6 @@ export default function StockEditor({ stock, saving = false, refreshing = false,
       notesHtml: form.notesHtml || null,
       sharesMilli: fromShares(form.shares),
       averageCostBasis: fromDollars(form.averageCostBasis),
-      manualCurrentPrice: fromDollars(form.manualCurrentPrice),
-      manualTargetPrice: fromDollars(form.manualTargetPrice),
-      manualPeRatio: fromNumber(form.manualPeRatio),
-      manualPbRatio: fromNumber(form.manualPbRatio),
-      manualPsRatio: fromNumber(form.manualPsRatio),
-      manualEpsGrowth: fromNumber(form.manualEpsGrowth),
     });
   };
 
@@ -315,39 +282,6 @@ export default function StockEditor({ stock, saving = false, refreshing = false,
               className={stock?.syncSource === 'plaid' ? 'opacity-60' : ''}
             />
           </label>
-        </div>
-
-        <div className="stocks-panel space-y-4">
-          <div>
-            <p className="stocks-eyebrow">Manual Overrides</p>
-            <h3 className="stocks-panel-title">Valuation Inputs</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label className="stocks-field">
-              <span>Current Price ($)</span>
-              <input value={form.manualCurrentPrice} onChange={(e) => setField('manualCurrentPrice', e.target.value)} placeholder="0.00" inputMode="decimal" />
-            </label>
-            <label className="stocks-field">
-              <span>Analyst Target ($)</span>
-              <input value={form.manualTargetPrice} onChange={(e) => setField('manualTargetPrice', e.target.value)} placeholder="0.00" inputMode="decimal" />
-            </label>
-            <label className="stocks-field">
-              <span>P/E</span>
-              <input value={form.manualPeRatio} onChange={(e) => setField('manualPeRatio', e.target.value)} placeholder="25.3" inputMode="decimal" />
-            </label>
-            <label className="stocks-field">
-              <span>P/B</span>
-              <input value={form.manualPbRatio} onChange={(e) => setField('manualPbRatio', e.target.value)} placeholder="6.4" inputMode="decimal" />
-            </label>
-            <label className="stocks-field">
-              <span>P/S</span>
-              <input value={form.manualPsRatio} onChange={(e) => setField('manualPsRatio', e.target.value)} placeholder="9.1" inputMode="decimal" />
-            </label>
-            <label className="stocks-field">
-              <span>EPS Growth (%)</span>
-              <input value={form.manualEpsGrowth} onChange={(e) => setField('manualEpsGrowth', e.target.value)} placeholder="14.2" inputMode="decimal" />
-            </label>
-          </div>
         </div>
       </div>
       </div>

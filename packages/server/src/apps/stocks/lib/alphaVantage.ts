@@ -133,14 +133,6 @@ function dollarsToCentsValue(value: number | null): number | null {
   return value === null ? null : Math.round(value * 100);
 }
 
-function deriveEpsGrowthPercent(epsValue: number | null, peRatio: number | null): number | null {
-  if (epsValue === null || epsValue <= 0 || peRatio === null || peRatio <= 0) {
-    return null;
-  }
-
-  return Number(((1 / peRatio) * 100).toFixed(2));
-}
-
 async function fetchAlphaVantageFunction<T>(symbol: string, fn: string, apiKey: string): Promise<T> {
   const params = new URLSearchParams({
     function: fn,
@@ -191,7 +183,6 @@ export async function fetchAlphaVantageMetrics(symbol: string): Promise<AlphaVan
   const quote = await fetchAlphaVantageFunction<AlphaVantageQuoteResponse>(normalizedSymbol, 'GLOBAL_QUOTE', apiKey);
 
   const peRatio = parseNumber(overview.PERatio);
-  const epsValue = parseNumber(overview.EPS);
 
   return {
     companyName: overview.Name ?? null,
@@ -221,7 +212,10 @@ export async function fetchAlphaVantageMetrics(symbol: string): Promise<AlphaVan
     dividendPerShare: dollarsToCentsValue(parseNumber(overview.DividendPerShare)),
     exDividendDate: overview.ExDividendDate && overview.ExDividendDate !== 'None' ? overview.ExDividendDate : null,
     dividendDate: overview.DividendDate && overview.DividendDate !== 'None' ? overview.DividendDate : null,
-    epsGrowth: deriveEpsGrowthPercent(epsValue, peRatio),
+    // EPS growth: Alpha Vantage has no direct field, so use quarterly earnings
+    // growth YoY as the closest proxy (percentage). Previously this derived
+    // earnings yield (1/PE), which was mislabeled as growth.
+    epsGrowth: parseRatioPercentage(overview.QuarterlyEarningsGrowthYOY),
     marketCap: parseNumber(overview.MarketCapitalization),
     beta: parseNumber(overview.Beta),
     fiftyTwoWeekHigh: dollarsToCentsValue(parseNumber(overview['52WeekHigh'])),
