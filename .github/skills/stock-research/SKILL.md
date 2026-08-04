@@ -49,6 +49,34 @@ Run these phases (parallelize discovery where the runtime allows). Keep each gro
 5. **Valuation (relative + light intrinsic)** — current multiples (P/E, EV/EBITDA, P/S, P/B, FCF yield) vs. history and peers; a simple scenario/DCF sketch if inputs are reliable. **No single price target** — describe ranges and what they imply.
 6. **Bull / bear / risks** — 3+ bull points, **3+ bear/risk points** (mandatory), key debates, and what would change the thesis.
 7. **Synthesis** — signal rating + thesis + monitoring checklist.
+8. **Teaching docs** — translate the report for a non-expert reader: a finance-side primer and a domain-side deep-dive (see below). Write these **last**, once you know which terms and concepts the report actually used.
+
+## Teaching docs (two mandatory outputs)
+
+Research reports accumulate jargon fast — financial, industry and technical. Every report therefore ships **two** explainers, aimed at different gaps. Keep them separate; do not merge them, and do not duplicate content between them.
+
+### `PRIMER.md` — the finance side ("how to read this report")
+
+Makes the numbers legible to someone who has never read a financial statement.
+
+- **Ground every definition in this company's real figures.** Each term gets a plain definition plus a "→ <TICKER>'s actual number". Never ship a generic glossary.
+- **Only define terms the report actually uses.** Sweep the analysis files and cover what's there.
+- **No jargon inside the explanations.** If a definition needs another term, define that too. Use everyday analogies (a balance sheet is a photograph; a cash flow statement is a bank statement).
+- Required sections: (1) the facets of a business, each answered in one line for this company with a pointer to the relevant file; (2) how the three financial statements fit together, including a top-to-bottom walk down this company's actual income statement; (3) a themed glossary (income statement · cash flow · balance sheet · valuation · quality & efficiency · business-model/cycle words); (4) 3–5 ways *this* company's numbers can mislead, each with a worked example from its own history; (5) conventions (fiscal year, TTM, YoY/QoQ, A–E grades, what signal ratings do and don't mean); (6) what the report is not.
+- **Link to `HOW_IT_WORKS.md` for all domain vocabulary** rather than defining it here in one-liners.
+
+### `HOW_IT_WORKS.md` — the domain side ("how this business and industry actually work")
+
+Teaches the **industry, the product and the business model** in depth. This is a genuine explainer, **not a glossary** — the most common failure mode is reducing rich domain concepts to one-line definitions. If a concept drives the investment case, it gets a section with a diagram, not a table row.
+
+- **Company- and industry-specific. No financial ratios** — those belong in `PRIMER.md`.
+- **Explain mechanism, not just meaning.** Don't say "HBM is stacked memory"; explain *why* stacking is necessary, how it's physically built, and *why making it starves ordinary supply*. Aim for the reader being able to re-explain it to someone else.
+- **Tie every technical fact back to the economics.** After each mechanism, answer "so what does this mean for the company?" The physics is only worth teaching because it explains the moat, the cycle, or the margin.
+- **Use diagrams.** Mermaid for flows, cycles, value chains and dependency maps; ASCII art for physical structures (chip cross-sections, stacks, hierarchies). Prefer Markdown + Mermaid over slide decks — slides cap the depth and assume a presenter.
+- Suggested spine (adapt to the industry): what the product fundamentally is and why anyone needs it · how it physically works · how it's made and why that's hard · the flagship/premium product and what changed · the full current product portfolio · the segments and who the customers really are · how the industry got its current structure · the dominant industry dynamic (for cyclicals, the cycle itself, drawn as a loop) · how money is actually made (unit economics) · the value chain and its chokepoints · the live strategic battles · how to follow the industry yourself · ten things worth remembering.
+- Label general engineering/industry principles as such; cite all company- and market-specific claims with A–E grades.
+
+Both files carry the same guardrails as the rest of the report: no advice, no price targets, standard disclaimer at the end.
 
 ## Cross-validation (mandatory)
 
@@ -81,9 +109,13 @@ research/<TICKER>/
 ├── 04_moat.md
 ├── 05_valuation.md
 ├── 06_bull_bear_risks.md
+├── HOW_IT_WORKS.md        # domain deep-dive: industry, product, technology, business model
+├── PRIMER.md              # finance-side explainer + glossary, grounded in this company's numbers
 └── sources.md             # every source with A–E grade + URL + date
 ```
 Use `<TICKER>` uppercased (e.g. `research/NVDA/`). Follow the format enforced by `.github/instructions/stock-research.instructions.md`.
+
+Additional deep-dive files (e.g. `07_<topic>.md`) may be added when a subject warrants it — note any such addition in `sources.md`, and make sure the teaching docs cover the terms they introduce.
 
 **2. Concise note → the stock's Research Notes (in-app):**
 Hand off to the **`research-notes-writer`** skill to save a short HTML summary (signal, 2–3 sentence thesis, top reasons, key risks, sources line, disclaimer) into the stock's `notesHtml` via the API. Append a new dated section, create notes if empty, or modify an existing same-date section.

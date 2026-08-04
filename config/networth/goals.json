@@ -8,6 +8,14 @@
       "targetType": "category",
       "categoryId": "asset-1773440349604-0gdbw",
       "createdAt": "2026-03-13T22:34:12.110Z"
+    },
+    {
+      "id": "goal-1784590530065",
+      "name": "Cash + Savings",
+      "targetValue": 7200000,
+      "targetType": "category",
+      "categoryId": "asset-cash",
+      "createdAt": "2026-07-20T23:35:30.065Z"
     }
   ]
 }
