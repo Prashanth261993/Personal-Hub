@@ -122,6 +122,8 @@ stock_metrics_cache: id (TEXT PK), stock_id (FK→stocks CASCADE, unique), sourc
                      created_at, updated_at
 stock_versions:      id (TEXT PK), stock_id (FK→stocks CASCADE), source ('manual'|'api-refresh'|'restore'),
                      payload (JSON TEXT), created_at
+stock_research_decisions: id (TEXT PK), stock_id (FK→stocks CASCADE), as_of (YYYY-MM-DD), action, conviction,
+                     payload (JSON TEXT — decision.json, prices in DOLLARS), created_at, updated_at
 plaid_connections:   id (TEXT PK), institution_name, institution_id, access_token (AES-256-GCM encrypted),
                      item_id, accounts_json, last_synced_at, created_at
 stock_lots:          id (TEXT PK), stock_id (FK→stocks CASCADE), connection_id (FK→plaid_connections SET NULL),
@@ -161,7 +163,7 @@ Unique indexes on `funds.cik` and `fund_filings.accession_number`; indexes on `f
 ## Client Patterns (packages/client)
 
 - **React 19 + Vite + Tailwind CSS v4** with `@theme` custom properties for colors (primary=indigo, success=green, danger=red, warning=amber).
-- **TanStack Query v5** for all data fetching. Query keys are arrays: `['snapshots']`, `['snapshot', id]`, `['trends']`, `['insights-summary']`, `['goals']`, `['members']`, `['categories']`, `['todo-groups']`, `['todos']`, `['todo', id]`, `['todo-stats']`, `['todo-calendar', month]`, `['stocks-dashboard']`, `['stocks-summary']`, `['stock', id]`, `['stock-presets']`, `['funds']`, `['fund', id]`, `['fund-holdings', id, filingId]`, `['fund-deltas', id]`, `['funds-summary']`, `['funds-screener']`, `['funds-screener-presets']`, `['funds-insights']`. Mutations invalidate related query keys on success.
+- **TanStack Query v5** for all data fetching. Query keys are arrays: `['snapshots']`, `['snapshot', id]`, `['trends']`, `['insights-summary']`, `['goals']`, `['members']`, `['categories']`, `['todo-groups']`, `['todos']`, `['todo', id]`, `['todo-stats']`, `['todo-calendar', month]`, `['stocks-dashboard']`, `['stocks-summary']`, `['stock', id]`, `['stock-presets']`, `['stock-decisions', id]`, `['funds']`, `['fund', id]`, `['fund-holdings', id, filingId]`, `['fund-deltas', id]`, `['funds-summary']`, `['funds-screener']`, `['funds-screener-presets']`, `['funds-insights']`. Mutations invalidate related query keys on success.
 - **Global toast notifications**: `react-hot-toast` with a global `MutationCache` in `main.tsx`. Mutations that set `meta: { successMessage: '...' }` get an automatic success toast. All mutation errors show an error toast by default. The `<Toaster>` is rendered in `App.tsx` at bottom-right with a dark theme.
 - **App-scoped API layer**: Each app has its own `api.ts` at `src/apps/<appName>/api.ts` with an axios instance (`baseURL: '/api/<appName>'`). Platform-level shared API at `src/lib/api.ts` (`baseURL: '/api'`).
 - **React Router v7** — Layout as parent route with `<Outlet />`. App pages are nested under `/<appName>/*`. Platform pages (Home, Help) are at root level.
@@ -219,6 +221,13 @@ Unique indexes on `funds.cik` and `fund_filings.accession_number`; indexes on `f
 - **Stock Detail layout**: Metrics are displayed in a 3-column responsive grid (Trading Tape, Valuation, Growth). The StockEditor form fields sit below with a 2-column internal layout. The Research Journal is a full-width section below the form.
 - **Tax lots & transactions**: `GET /api/stocks/:id/lots` returns open lots (quantity > 0) with computed cost basis, current value, gain/loss, holding days, and an `isLongTerm` flag (> 365 days). `GET /api/stocks/:id/transactions` returns the imported transaction log. `GET /api/stocks/:id/metrics-history` derives a per-date metric time series from `stock_versions` (deduped, keeping the latest entry per date) for the `PriceTargetChart`/`MetricExplorer` components.
 - **Refresh only touches the cache**: `POST /api/stocks/:id/refresh` updates the metrics cache and enriches missing metadata (company/exchange/sector/industry). It never writes metric values into the `stocks` row. `effectiveMetrics` reads straight from the cache, so the refreshed API price shows immediately. An `api-refresh` version is appended when enriched metadata changes.
+
+### Stocks Research Decisions
+- **Source**: The `stock-research` skill (`.github/skills/stock-research/`) writes `research/<TICKER>/decision/decision.json` (action, conviction, fair value, probability-weighted scenarios, price zones, thesis breakers, scorecard). The `research-notes-writer` skill POSTs it to the app.
+- **API** (`routes/research.ts`, mounted before the main stocks router): `GET/POST /api/stocks/:id/decisions`, `DELETE /api/stocks/:id/decisions/:decisionId`. POST validates via `validateDecision()` in `lib/researchDecisions.ts` (symbol match, ordered zones `buyBelow ≤ accumulateBelow ≤ trimAbove ≤ sellAbove`, probabilities summing to 1, `fairValue.low ≤ mid ≤ high`) and upserts on `(stock_id, as_of)`.
+- **Evaluation**: `buildResearchStatus()` compares the latest decision with the cached `currentPrice` (cents → dollars) and returns `priceZone`, `fairValueUpsidePercent`, `reviewDue` and `belowReviewPrice`. This is exposed as `research` on `StockDetail` and each `StockDashboardRow`.
+- **Units**: decision payload prices are **dollars** (they mirror the authored JSON). Everything else in the Stocks app uses cents.
+- **Client**: `components/ResearchVerdictPanel.tsx` (verdict, zone ladder, scenarios, thesis breakers, scorecard, decision timeline) sits at the top of Stock Detail. The dashboard shows an action badge and zone chip per card, a verdict filter (buy/accumulate zone, trim/sell zone, review due, needs research) and a "Research fair-value upside" sort.
 
 ### Stocks Brokerage (Plaid)
 - **Architecture**: Plaid routes mounted at `/api/stocks/plaid` (`packages/server/src/apps/stocks/routes/plaid.ts`); Plaid SDK wrapper + token encryption in `packages/server/src/apps/stocks/lib/plaidClient.ts`. Client page `packages/client/src/apps/stocks/pages/Brokerage.tsx` uses `react-plaid-link`.

@@ -1,3 +1,8 @@
+---
+name: frontend-design
+description: Use for substantial UI work in this repository — creating a new app surface, redesigning dashboards, or adding dense data views. Covers the repo's frontend design conventions, layout patterns, and component styling rules.
+---
+
 # Frontend Design Conventions
 
 Use this skill for substantial UI work in this repository, especially when creating a new app surface, redesigning dashboards, or adding dense data views.

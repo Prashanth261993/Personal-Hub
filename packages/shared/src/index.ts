@@ -443,6 +443,7 @@ export interface StockDashboardRow {
   upsidePercent: number | null;
   positionValue: number | null;         // cents
   lastFetchedAt: string | null;
+  research: StockResearchStatus | null;
 }
 
 export interface StocksDashboardSummary {
@@ -465,6 +466,73 @@ export interface StockDetail extends Stock {
   effectiveMetrics: StockMetricsSnapshot;
   upsidePercent: number | null;
   positionValue: number | null;
+  research: StockResearchStatus | null;
+}
+
+// ── Stock Research Decisions (written by the stock-research skill's decision.json) ──
+// Prices in the decision payload are DOLLARS (numbers), not cents — it mirrors decision.json as authored.
+
+export type ResearchSignal = 'strong' | 'neutral' | 'caution';
+export type ResearchAction = 'strong-buy' | 'buy' | 'accumulate' | 'hold' | 'trim' | 'sell' | 'avoid';
+export type ResearchConviction = 'high' | 'medium' | 'low';
+export type ResearchMode = 'full' | 'refresh' | 'earnings';
+export type ResearchPriceZone = 'buy' | 'accumulate' | 'hold' | 'trim' | 'sell';
+
+export interface ResearchScenario {
+  name: string;
+  probability: number;                  // 0..1
+  price12m: number;
+  price3y: number | null;
+  driver: string;
+}
+
+export interface ResearchLevel {
+  price: number;
+  type: 'support' | 'resistance' | 'fair-value' | 'review';
+  label: string;
+}
+
+export interface ResearchDecision {
+  schemaVersion: 1;
+  symbol: string;
+  asOf: string;                         // YYYY-MM-DD
+  priceAtAnalysis: number;
+  mode: ResearchMode;
+  signal: ResearchSignal;
+  action: ResearchAction;
+  conviction: ResearchConviction;
+  fairValue: { low: number; mid: number; high: number };
+  marginOfSafetyPct: number | null;
+  scenarios: ResearchScenario[];
+  expectedPrice12m: number;
+  expectedReturn12mPct: number | null;
+  zones: { buyBelow: number; accumulateBelow: number; trimAbove: number; sellAbove: number };
+  levels: ResearchLevel[];
+  thesisBreakers: string[];
+  reviewPriceBelow: number | null;
+  nextReviewDate: string | null;
+  scorecard: Partial<Record<'quality' | 'growth' | 'valuation' | 'balanceSheet' | 'momentum' | 'sentiment' | 'catalysts', number>>;
+  reportPath: string | null;
+}
+
+export interface StockResearchDecisionRecord {
+  id: string;
+  stockId: string;
+  asOf: string;
+  decision: ResearchDecision;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Latest decision evaluated against the current cached price. */
+export interface StockResearchStatus {
+  latest: StockResearchDecisionRecord;
+  currentPrice: number | null;          // dollars, from metrics cache
+  priceZone: ResearchPriceZone | null;
+  fairValueUpsidePercent: number | null; // (fairValue.mid - currentPrice) / currentPrice
+  belowReviewPrice: boolean;
+  reviewDue: boolean;                   // nextReviewDate has passed
+  daysSinceAnalysis: number;
 }
 
 export interface RefreshStockResponse {

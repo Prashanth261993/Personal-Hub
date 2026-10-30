@@ -174,6 +174,19 @@ export function runMigrations() {
     CREATE INDEX IF NOT EXISTS idx_stock_versions_stock ON stock_versions(stock_id);
     CREATE INDEX IF NOT EXISTS idx_stock_versions_created_at ON stock_versions(created_at);
 
+    CREATE TABLE IF NOT EXISTS stock_research_decisions (
+      id TEXT PRIMARY KEY,
+      stock_id TEXT NOT NULL REFERENCES stocks(id) ON DELETE CASCADE,
+      as_of TEXT NOT NULL,
+      action TEXT NOT NULL,
+      conviction TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_stock_decisions_stock_asof ON stock_research_decisions(stock_id, as_of);
+
     -- Plaid Brokerage Integration
     CREATE TABLE IF NOT EXISTS plaid_connections (
       id TEXT PRIMARY KEY,

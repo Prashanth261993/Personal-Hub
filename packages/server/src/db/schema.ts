@@ -163,6 +163,21 @@ export const stockVersions = sqliteTable('stock_versions', {
   createdAt: text('created_at').notNull(),
 });
 
+export const stockResearchDecisions = sqliteTable('stock_research_decisions', {
+  id: text('id').primaryKey(),
+  stockId: text('stock_id')
+    .notNull()
+    .references(() => stocks.id, { onDelete: 'cascade' }),
+  asOf: text('as_of').notNull(),
+  action: text('action').notNull(),
+  conviction: text('conviction').notNull(),
+  payload: text('payload').notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+}, (table) => ([
+  uniqueIndex('idx_stock_decisions_stock_asof').on(table.stockId, table.asOf),
+]));
+
 // ── Plaid Brokerage Integration ──
 
 export const plaidConnections = sqliteTable('plaid_connections', {

@@ -7,6 +7,7 @@ import { fetchStock, refreshStock, updateStock, fetchStockLots, fetchStockTransa
 import StockEditor from '../components/StockEditor';
 import PriceTargetChart from '../components/PriceTargetChart';
 import MetricExplorer from '../components/MetricExplorer';
+import ResearchVerdictPanel from '../components/ResearchVerdictPanel';
 import { useStocksTheme } from '../useStocksTheme';
 
 function formatMetric(value: number | null, prefix = '') {
@@ -95,6 +96,8 @@ export default function StockDetail() {
           <span><RefreshCw className="w-4 h-4" /> {stock.lastSyncedAt ? `Synced ${new Date(stock.lastSyncedAt).toLocaleString()}` : 'Never synced'}</span>
         </div>
       </div>
+
+      <ResearchVerdictPanel stockId={stockId} status={stock.research} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           <div className="stocks-panel">

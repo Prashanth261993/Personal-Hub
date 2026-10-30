@@ -168,6 +168,9 @@ Navigate to **http://localhost:5173** — the Home page shows all available apps
 | GET | `/api/stocks/plaid/connections` | List connected brokerage institutions |
 | DELETE | `/api/stocks/plaid/connections/:id` | Delete a connection and reset linked stocks to manual sync |
 | POST | `/api/stocks/agent/chat` | Chat with the AI research agent (SSE stream) |
+| GET | `/api/stocks/:id/decisions` | List research verdicts (from `decision.json`), newest first |
+| POST | `/api/stocks/:id/decisions` | Validate and upsert a research verdict for its `asOf` date |
+| DELETE | `/api/stocks/:id/decisions/:decisionId` | Delete a research verdict |
 
 ### Funds (`/api/funds`)
 
@@ -201,7 +204,7 @@ Navigate to **http://localhost:5173** — the Home page shows all available apps
 | `/todo/calendar` | Todo Calendar | Monthly calendar grid with todo chips per day and drag-to-reschedule support |
 | `/stocks` | Stocks Dashboard | Finance-style dashboard for tracked stocks with upside and valuation metrics |
 | `/stocks/new` | New Stock | Create a stock record with thesis, notes, and manual overrides |
-| `/stocks/:id` | Stock Detail | Full-width metrics, research journal with image support, manual overrides, and version history |
+| `/stocks/:id` | Stock Detail | Research verdict panel (action, fair value, zone ladder, scenarios, thesis breakers, decision timeline), full-width metrics, research journal with image support, and version history |
 | `/stocks/agent` | Stock Agent | AI-powered research assistant chat using Alpha Vantage via MCP |
 | `/stocks/brokerage` | Brokerage | Connect Plaid accounts, preview/select holdings, and sync into tracked stocks |
 | `/funds` | Funds Dashboard | Tracked funds with latest-quarter value, position count, top holding, and per-fund refresh |
@@ -331,6 +334,7 @@ The Stocks app is a finance-oriented research workspace for both watchlist ideas
 - **Dashboard Search & Filters** — text search, 18 sort options, sector filter, 9 numeric range filters, and saved custom presets (`config/stocks/presets.json`)
 - **Rich Research Notes** — full-width Research Journal section with Tiptap editor supporting images (paste, drag-drop, toolbar upload as base64), links, headings, and task lists
 - **AI Research Agent** — chat-based assistant at `/stocks/agent` powered by GitHub Models (or any OpenAI-compatible endpoint) with Alpha Vantage tools via MCP. Supports real-time streaming via SSE
+- **Deep Research & Verdicts** — the `/research-stock` Copilot prompt (Stock Researcher agent + `stock-research` skill) writes a cited knowledge report plus a decision layer to the gitignored `research/<TICKER>/`. The decision layer covers valuation models, probability-weighted price scenarios, price levels computed from downloaded prices, sentiment/positioning, a red-team critique, and a verdict. It runs in four modes: full, refresh (adds a delta + scores past calls), earnings, and compare. The verdict (`decision.json`) is posted to the app, which shows the action, fair value and buy/accumulate/hold/trim/sell zones against the live price on Stock Detail, and adds verdict badges/filters to the dashboard
 - **Plaid Brokerage Sync** — connect an investment account at `/stocks/brokerage` via Plaid Link, preview holdings matched against tracked symbols, then sync selected symbols. Sync updates shares and average cost basis, imports investment transactions (deduped by Plaid transaction ID), creates per-purchase tax lots, applies FIFO on sells, and recomputes cost basis from remaining lots. Access tokens are AES-256-GCM encrypted at rest
 - **Tax Lots & Metrics History** — the detail page surfaces open lots (cost basis, gain/loss, holding days, long-term flag) and a price-target/valuation history chart derived from version snapshots
 - **Dark Finance UI** — the Stocks experience has app-scoped dark/light theming without re-theming the rest of the platform
@@ -341,6 +345,7 @@ The Stocks app is a finance-oriented research workspace for both watchlist ideas
 - `stocks` stores the latest editable stock state
 - `stock_metrics_cache` stores the latest Alpha Vantage-enriched metrics and refresh status
 - `stock_versions` stores append-only historical snapshots for each save or API-driven metadata update
+- `stock_research_decisions` stores research verdicts (one per stock per `as_of` date; the payload mirrors `decision.json`, with prices in dollars)
 - `plaid_connections` stores connected institutions with AES-256-GCM-encrypted access tokens (unique by `item_id`)
 - `stock_lots` stores per-purchase tax lots (remaining + original quantity, price, fees, source) decremented via FIFO on sells
 - `stock_transactions` stores the imported buy/sell/dividend/transfer/fee history (deduped by `plaid_transaction_id`)

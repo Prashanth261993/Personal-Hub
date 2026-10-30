@@ -4,10 +4,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   ArrowUpRight, ChevronDown, ChevronUp, CirclePlus, Clock3, Filter, Plus, RefreshCw, Search,
-  SlidersHorizontal, Trash2, TrendingDown, TrendingUp, WalletCards, Eye, X, Zap,
+  SlidersHorizontal, Target, Trash2, TrendingDown, TrendingUp, WalletCards, Eye, X, Zap,
 } from 'lucide-react';
 import type { StockDashboardRow, StockPreset, StockPresetFilters } from '@networth/shared';
 import { createStockPreset, deleteStock, deleteStockPreset, fetchStockPresets, fetchStocksDashboard } from '../api';
+import { ActionBadge, ZONE_META } from '../components/ResearchVerdictPanel';
 import { formatCurrency, formatPercent } from '@networth/shared';
 import { useStocksTheme } from '../useStocksTheme';
 import ConfirmModal from '../../../components/ConfirmModal';
@@ -18,10 +19,22 @@ import ConfirmModal from '../../../components/ConfirmModal';
 
 type TrackingFilter = 'all' | 'watchlist' | 'holding';
 
+type VerdictFilter = 'all' | 'has-verdict' | 'no-verdict' | 'buy-zone' | 'trim-zone' | 'review';
+
+const VERDICT_FILTER_LABELS: Record<VerdictFilter, string> = {
+  all: 'All verdicts',
+  'has-verdict': 'Has research verdict',
+  'no-verdict': 'Needs research',
+  'buy-zone': 'In buy / accumulate zone',
+  'trim-zone': 'In trim / sell zone',
+  review: 'Review due / below review price',
+};
+
 type SortField =
   | 'upsidePercent' | 'peRatio' | 'pegRatio' | 'epsGrowth' | 'marketCap'
   | 'positionValue' | 'currentPrice' | 'beta' | 'dividendYield'
-  | 'profitMargin' | 'returnOnEquityTtm' | 'updatedAt' | 'lastSyncedAt' | 'companyName';
+  | 'profitMargin' | 'returnOnEquityTtm' | 'updatedAt' | 'lastSyncedAt' | 'companyName'
+  | 'fairValueUpside';
 
 type SortDirection = 'asc' | 'desc';
 
@@ -74,6 +87,7 @@ const SORT_OPTIONS: SortOption[] = [
   { field: 'lastSyncedAt', direction: 'asc', label: 'Last Synced — oldest first' },
   { field: 'lastSyncedAt', direction: 'desc', label: 'Last Synced — newest first' },
   { field: 'companyName', direction: 'asc', label: 'Company Name A→Z' },
+  { field: 'fairValueUpside', direction: 'desc', label: 'Research fair-value upside — highest' },
 ];
 
 const EMPTY_RANGE: RangeFilter = { min: '', max: '' };
@@ -128,6 +142,19 @@ function getMetricValue(row: StockDashboardRow, field: SortField): number | stri
     case 'updatedAt': return row.stock.updatedAt;
     case 'lastSyncedAt': return row.lastFetchedAt;
     case 'companyName': return row.stock.companyName;
+    case 'fairValueUpside': return row.research?.fairValueUpsidePercent ?? null;
+  }
+}
+
+function passesVerdict(row: StockDashboardRow, filter: VerdictFilter): boolean {
+  const r = row.research;
+  switch (filter) {
+    case 'all': return true;
+    case 'has-verdict': return r !== null;
+    case 'no-verdict': return r === null;
+    case 'buy-zone': return r?.priceZone === 'buy' || r?.priceZone === 'accumulate';
+    case 'trim-zone': return r?.priceZone === 'trim' || r?.priceZone === 'sell';
+    case 'review': return Boolean(r && (r.reviewDue || r.belowReviewPrice));
   }
 }
 
@@ -215,6 +242,7 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortIndex, setSortIndex] = useState(0); // index into SORT_OPTIONS
   const [sectorFilter, setSectorFilter] = useState<string>('all');
+  const [verdictFilter, setVerdictFilter] = useState<VerdictFilter>('all');
   const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(EMPTY_ADVANCED);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [savePresetName, setSavePresetName] = useState('');
@@ -236,6 +264,7 @@ export default function Dashboard() {
     setSearchQuery('');
     setSortIndex(0);
     setSectorFilter('all');
+    setVerdictFilter('all');
     setAdvancedFilters(EMPTY_ADVANCED);
     setShowAdvanced(false);
   }, []);
@@ -287,6 +316,7 @@ export default function Dashboard() {
         if (q && !row.stock.symbol.toLowerCase().includes(q) && !row.stock.companyName.toLowerCase().includes(q)) return false;
         // sector
         if (sectorFilter !== 'all' && row.stock.sector !== sectorFilter) return false;
+        if (!passesVerdict(row, verdictFilter)) return false;
         // advanced ranges
         if (!passesRange(row.upsidePercent, advancedFilters.upsidePercent)) return false;
         if (!passesRange(row.metrics.peRatio, advancedFilters.peRatio)) return false;
@@ -301,10 +331,10 @@ export default function Dashboard() {
         return true;
       })
       .sort((a, b) => compareRows(a, b, sort.field, sort.direction));
-  }, [data, trackingFilter, searchQuery, sortIndex, sectorFilter, advancedFilters]);
+  }, [data, trackingFilter, searchQuery, sortIndex, sectorFilter, verdictFilter, advancedFilters]);
 
   const totalCount = data?.rows.length ?? 0;
-  const hasAnyFilter = searchQuery.trim() !== '' || trackingFilter !== 'all' || sectorFilter !== 'all' || activeFilterCount > 0;
+  const hasAnyFilter = searchQuery.trim() !== '' || trackingFilter !== 'all' || sectorFilter !== 'all' || verdictFilter !== 'all' || activeFilterCount > 0;
 
   return (
     <div className={`stocks-shell ${themeClassName}`}>
@@ -432,6 +462,22 @@ export default function Dashboard() {
                   </label>
                 </div>
               )}
+
+              {/* research verdict */}
+              <div className="stocks-sort-wrapper">
+                <label className="stocks-sort-label">
+                  <Target className="w-3.5 h-3.5" />
+                  <select
+                    value={verdictFilter}
+                    onChange={(e) => setVerdictFilter(e.target.value as VerdictFilter)}
+                    className="stocks-sort-select"
+                  >
+                    {(Object.keys(VERDICT_FILTER_LABELS) as VerdictFilter[]).map((key) => (
+                      <option key={key} value={key}>{VERDICT_FILTER_LABELS[key]}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
 
               {/* advanced toggle */}
               <button
@@ -603,6 +649,19 @@ export default function Dashboard() {
                           <span className="stocks-ticker">{row.stock.symbol}</span>
                           <span className="stocks-badge">{row.stock.trackingMode}</span>
                           <span className={`stocks-badge ${row.refreshState === 'fresh' ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10' : 'text-amber-200 border-amber-500/30 bg-amber-500/10'}`}>{row.refreshState}</span>
+                          {row.research && (
+                            <>
+                              <ActionBadge action={row.research.latest.decision.action} small />
+                              {row.research.priceZone && (
+                                <span className={`text-[11px] font-semibold ${ZONE_META[row.research.priceZone].text}`} title={`Verdict as of ${row.research.latest.decision.asOf}`}>
+                                  ● {ZONE_META[row.research.priceZone].label}
+                                </span>
+                              )}
+                              {(row.research.reviewDue || row.research.belowReviewPrice) && (
+                                <span className="text-[11px] text-amber-300" title="Review due or price below review level">⚠ review</span>
+                              )}
+                            </>
+                          )}
                         </div>
                         <h3 className="text-lg font-semibold text-[var(--stocks-text-strong)]">{row.stock.companyName}</h3>
                         <p className="text-sm text-[var(--stocks-text-muted)] mt-1">{[row.stock.exchange, row.stock.sector].filter(Boolean).join(' · ') || 'No market metadata yet'}</p>
@@ -637,6 +696,9 @@ export default function Dashboard() {
                         <span>P/S {formatMetric(row.metrics.psRatio)}</span>
                         <span>PEG {formatMetric(row.metrics.pegRatio)}</span>
                         <span>{row.positionValue !== null ? `Value ${formatCurrency(row.positionValue)}` : 'No position size'}</span>
+                        {row.research && (
+                          <span>FV ${row.research.latest.decision.fairValue.mid.toLocaleString('en-US', { maximumFractionDigits: 2 })}{row.research.fairValueUpsidePercent !== null ? ` (${formatPercent(row.research.fairValueUpsidePercent)})` : ''}</span>
+                        )}
                         <span className="inline-flex items-center gap-1"><Clock3 className="w-3 h-3" />{row.lastFetchedAt ? new Date(row.lastFetchedAt).toLocaleDateString() : 'Never synced'}</span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-[var(--stocks-accent)]">

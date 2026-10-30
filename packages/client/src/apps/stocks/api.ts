@@ -12,6 +12,7 @@ import type {
   StockDetail,
   StockLookupResponse,
   StockPreset,
+  StockResearchDecisionRecord,
   StockTransaction,
   StockVersion,
   StocksDashboardResponse,
@@ -52,6 +53,10 @@ export const deletePlaidConnection = (id: string) => api.delete(`/plaid/connecti
 export const fetchStockTransactions = (id: string) => api.get<StockTransaction[]>(`/${id}/transactions`).then((r) => r.data);
 export const fetchStockLots = (id: string) => api.get<LotSummary[]>(`/${id}/lots`).then((r) => r.data);
 export const fetchStockMetricsHistory = (id: string) => api.get<MetricsHistoryPoint[]>(`/${id}/metrics-history`).then((r) => r.data);
+
+// ── Research decisions ──
+
+export const fetchStockDecisions = (id: string) => api.get<StockResearchDecisionRecord[]>(`/${id}/decisions`).then((r) => r.data);
 
 // ── Agent streaming ──
 

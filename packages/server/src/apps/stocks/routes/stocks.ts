@@ -10,6 +10,7 @@ import type {
   StockLookupResponse,
   StockMetricsCache,
   StockMetricsSnapshot,
+  StockResearchDecisionRecord,
   StocksDashboardResponse,
   StocksHomeSummary,
   StockVersion,
@@ -20,6 +21,7 @@ import type {
 import { db } from '../../../db/index.js';
 import { stockMetricsCache, stocks, stockVersions, stockLots, stockTransactions } from '../../../db/schema.js';
 import { fetchAlphaVantageMetrics } from '../lib/alphaVantage.js';
+import { buildResearchStatus, getDecisionsForStock, getLatestDecisionMap } from '../lib/researchDecisions.js';
 
 const router = Router();
 
@@ -125,7 +127,7 @@ function computePositionValue(stock: Stock, snapshot: StockMetricsSnapshot): num
   return Math.round((stock.sharesMilli / 1000) * snapshot.currentPrice);
 }
 
-function toDashboardRow(stock: Stock, metrics: StockMetricsCache | null): StockDashboardRow {
+function toDashboardRow(stock: Stock, metrics: StockMetricsCache | null, decision?: StockResearchDecisionRecord): StockDashboardRow {
   const effectiveMetrics = upsertMetricsSnapshot(metrics);
 
   return {
@@ -136,6 +138,7 @@ function toDashboardRow(stock: Stock, metrics: StockMetricsCache | null): StockD
     upsidePercent: computeUpsidePercent(effectiveMetrics),
     positionValue: computePositionValue(stock, effectiveMetrics),
     lastFetchedAt: metrics?.fetchedAt ?? null,
+    research: buildResearchStatus(decision, effectiveMetrics.currentPrice),
   };
 }
 
@@ -233,7 +236,8 @@ function getMetricsMap(): Map<string, StockMetricsCache> {
 function buildDashboardResponse(): StocksDashboardResponse {
   const allStocks = getAllStocks().filter((stock) => stock.status === 'active');
   const metricsByStockId = getMetricsMap();
-  const rows = allStocks.map((stock) => toDashboardRow(stock, metricsByStockId.get(stock.id) ?? null));
+  const decisionsByStockId = getLatestDecisionMap();
+  const rows = allStocks.map((stock) => toDashboardRow(stock, metricsByStockId.get(stock.id) ?? null, decisionsByStockId.get(stock.id)));
   const upsideValues = rows.map((row) => row.upsidePercent).filter((value): value is number => value !== null);
 
   return {
@@ -514,6 +518,7 @@ router.get('/:id', (req: Request, res: Response) => {
       effectiveMetrics,
       upsidePercent: computeUpsidePercent(effectiveMetrics),
       positionValue: computePositionValue(stock, effectiveMetrics),
+      research: buildResearchStatus(getDecisionsForStock(stock.id)[0], effectiveMetrics.currentPrice),
     };
 
     res.json(detail);
