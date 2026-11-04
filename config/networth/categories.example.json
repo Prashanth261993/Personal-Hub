@@ -1,0 +1,15 @@
+{
+  "assetCategories": [
+    { "id": "asset-cash", "name": "Cash & Savings", "icon": "banknote" },
+    { "id": "asset-investments", "name": "Investments", "icon": "trending-up" },
+    { "id": "asset-real-estate", "name": "Real Estate", "icon": "home" },
+    { "id": "asset-retirement", "name": "Retirement Accounts", "icon": "piggy-bank" },
+    { "id": "asset-other", "name": "Other Assets", "icon": "package" }
+  ],
+  "liabilityCategories": [
+    { "id": "liability-mortgage", "name": "Mortgage", "icon": "home" },
+    { "id": "liability-credit-cards", "name": "Credit Cards", "icon": "credit-card" },
+    { "id": "liability-auto-loans", "name": "Auto Loans", "icon": "car" },
+    { "id": "liability-other", "name": "Other Liabilities", "icon": "alert-circle" }
+  ]
+}

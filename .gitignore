@@ -18,6 +18,11 @@ data/*.db-shm
 # Generated stock research reports (personal analysis)
 research/
 
+# Personal Net Worth configs (templates: config/networth/*.example.json; backed up via `npm run backup`)
+config/networth/family-members.json
+config/networth/categories.json
+config/networth/goals.json
+
 # Environment
 .env
 .env.local

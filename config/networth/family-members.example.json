@@ -1,0 +1,6 @@
+{
+  "members": [
+    { "id": "member-1", "name": "Me", "color": "#4F46E5" },
+    { "id": "member-2", "name": "Partner", "color": "#10B981" }
+  ]
+}

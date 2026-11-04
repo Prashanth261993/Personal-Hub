@@ -1017,6 +1017,37 @@ export interface FundsInsightsResponse {
 
 // ── Platform Types ──
 
+export type BackupReason = 'manual' | 'auto' | 'cli' | 'pre-restore';
+
+export interface BackupStatus {
+  passphraseConfigured: boolean;
+  remoteRepo: string | null;
+  backupDir: string;
+  autoEnabled: boolean;
+  intervalHours: number;
+  running: boolean;
+  lastBackupAt: string | null;
+  lastBackupFile: string | null;
+  lastBackupSizeBytes: number | null;
+  lastUploadAt: string | null;
+  lastUploadUrl: string | null;
+  lastUploadError: string | null;
+  lastError: string | null;
+  localBackupCount: number;
+}
+
+export interface BackupResult {
+  file: string;
+  sizeBytes: number;
+  createdAt: string;
+  reason: BackupReason;
+  fileCount: number;
+  tables: Record<string, number>;
+  uploaded: boolean;
+  releaseUrl: string | null;
+  uploadError: string | null;
+}
+
 export interface AppDefinition {
   id: string;
   name: string;

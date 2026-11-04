@@ -23,6 +23,19 @@ function networthFile(filename: string): string {
   return path.join(configDir, filename);
 }
 
+/**
+ * Personal Net Worth configs are gitignored; on a fresh checkout seed them from the
+ * committed *.example.json templates (or restore real ones with `npm run restore`).
+ */
+function localNetworthFile(filename: string): string {
+  const filePath = networthFile(filename);
+  if (!fs.existsSync(filePath)) {
+    const example = networthFile(filename.replace(/\.json$/, '.example.json'));
+    if (fs.existsSync(example)) fs.copyFileSync(example, filePath);
+  }
+  return filePath;
+}
+
 function stocksFile(filename: string): string {
   return path.join(stocksConfigDir, filename);
 }
@@ -32,7 +45,7 @@ function fundsFile(filename: string): string {
 }
 
 export function getMembers(): FamilyMembersConfig {
-  return readJson<FamilyMembersConfig>(networthFile('family-members.json'));
+  return readJson<FamilyMembersConfig>(localNetworthFile('family-members.json'));
 }
 
 export function saveMembers(config: FamilyMembersConfig): void {
@@ -40,7 +53,7 @@ export function saveMembers(config: FamilyMembersConfig): void {
 }
 
 export function getCategories(): CategoriesConfig {
-  return readJson<CategoriesConfig>(networthFile('categories.json'));
+  return readJson<CategoriesConfig>(localNetworthFile('categories.json'));
 }
 
 export function saveCategories(config: CategoriesConfig): void {
@@ -48,7 +61,7 @@ export function saveCategories(config: CategoriesConfig): void {
 }
 
 export function getGoals(): GoalsConfig {
-  return readJson<GoalsConfig>(networthFile('goals.json'));
+  return readJson<GoalsConfig>(localNetworthFile('goals.json'));
 }
 
 export function saveGoals(config: GoalsConfig): void {

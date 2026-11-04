@@ -100,6 +100,8 @@ Navigate to **http://localhost:5173** — the Home page shows all available apps
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/health` | Health check |
+| GET | `/api/system/backup/status` | Backup configuration, last backup/upload, errors |
+| POST | `/api/system/backup` | Run an encrypted backup now (`{ upload?: boolean }`) |
 
 ### Net Worth (`/api/networth`)
 
@@ -235,12 +237,14 @@ Navigate to **http://localhost:5173** — the Home page shows all available apps
 | `npm run db:generate` | Generate Drizzle migration files |
 | `npm run db:migrate` | Run Drizzle migrations |
 | `npm run db:studio` | Open Drizzle Studio to browse the database |
+| `npm run backup` | Encrypted backup of all local data (+ GitHub upload) — see [Data Backup](#data-backup) |
+| `npm run restore` | Restore from a backup — see [Data Backup](#data-backup) |
 
 ---
 
 ## Configuration Files
 
-Config files live in `config/<appName>/` and are version-controlled.
+Config files live in `config/<appName>/`. Most are version-controlled. The personal Net Worth configs (`family-members.json`, `categories.json`, `goals.json`) are **gitignored**: on a fresh checkout they are seeded from the committed `*.example.json` templates, and `npm run restore` brings back the real ones.
 
 ### .env
 
@@ -260,6 +264,11 @@ PLAID_CLIENT_ID=your_plaid_client_id
 PLAID_SECRET=your_plaid_sandbox_secret
 PLAID_ENV=sandbox
 PLAID_ENCRYPTION_KEY=your_64_char_hex_key_for_aes256
+
+# Encrypted backups (see Data Backup)
+BACKUP_PASSPHRASE=a_long_random_passphrase_kept_in_your_password_manager
+BACKUP_GITHUB_REPO=your-user/your-private-backup-repo
+BACKUP_GITHUB_USER=your-user
 ```
 
 ### config/networth/family-members.json
@@ -354,4 +363,46 @@ The Stocks app is a finance-oriented research workspace for both watchlist ideas
 
 ## Data Backup
 
-Since the SQLite database is gitignored, back it up periodically. The database file is at `data/networth.db`. You can copy this file or use the snapshots list page to review your data.
+All personal data is local-only and gitignored: `data/networth.db`, `research/`, `.env`, and the Net Worth configs (`config/networth/{family-members,categories,goals}.json`). The backup tool bundles all of it (plus the rest of `config/`) into a single **encrypted** archive.
+
+### How it works
+
+- **What's included:** a consistent online copy of the SQLite DB (WAL contents included, safe while the server runs), `research/`, `config/`, `.env`, and `packages/server/.env`.
+- **Encryption:** tar.gz → AES-256-GCM with a key derived via scrypt from `BACKUP_PASSPHRASE`. Archives use the `.phbk` extension. **Store the passphrase in a password manager — without it a backup cannot be restored.**
+- **Verification:** every backup is decrypted again after writing, and every file's SHA-256 checksum, the DB integrity check, and the per-table row counts are verified. A backup that fails verification is deleted and reported as an error.
+- **Local copies:** written to `BACKUP_DIR` (default `~/PersonalHub-backups`). The newest `BACKUP_KEEP_LOCAL` (default 14) are kept.
+- **Off-site copies:** if `BACKUP_GITHUB_REPO` is set, each archive is uploaded as a GitHub **Release asset** in that (private) repo through the `gh` CLI. The newest `BACKUP_KEEP_REMOTE` (default 30) releases are kept. Release assets keep git history small. `BACKUP_GITHUB_USER` picks which logged-in `gh` account is used; set `BACKUP_GITHUB_TOKEN` instead to skip the `gh` login.
+- **Automatic:** while the server is running it backs up (and uploads) whenever the last backup is older than `BACKUP_INTERVAL_HOURS` (default 24). Set `BACKUP_AUTO=false` to disable.
+- **UI:** the Home page shows when the last backup ran and whether the upload succeeded, and has a **Back up now** button.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run backup` | Create + verify + upload a backup (`-- --no-upload` for local only) |
+| `npm run backup:list` | List local and remote backups |
+| `npm run backup:status` | Show configuration and the last run |
+| `npm run backup:verify -- <file>` | Decrypt and verify an archive without restoring |
+| `npm run restore -- --remote [tag]` | Restore the latest (or a specific) GitHub backup |
+| `npm run restore -- --latest-local` | Restore the newest local backup |
+| `npm run restore -- <file.phbk>` | Restore a specific archive |
+
+Restore flags: `--yes` skips the confirmation prompt, `--skip-env` keeps your current `.env` files, and `--repo owner/name` overrides `BACKUP_GITHUB_REPO`.
+
+Before restoring, the tool:
+
+- refuses to run while the dev server is up;
+- verifies the archive completely;
+- saves your **current** data to a `*-pre-restore.phbk` archive.
+
+It then replaces `data/networth.db` and `research/`, merges `config/`, and restores the `.env` files.
+
+### Setting up on a new machine
+
+```bash
+git clone https://github.com/Prashanth261993/Personal-Hub.git && cd Personal-Hub
+npm install
+gh auth login                      # as the account that owns the backup repo
+npm run restore -- --remote --repo <owner>/<backup-repo>   # prompts for the passphrase
+npm run dev
+```

@@ -9,10 +9,10 @@ Personal productivity platform with modular sub-applications. React SPA frontend
 ```
 PersonalHub/
 ├── config/
-│   ├── networth/            # Net Worth JSON configs (version-controlled)
-│   │   ├── family-members.json
-│   │   ├── categories.json
-│   │   └── goals.json
+│   ├── networth/            # Net Worth JSON configs — personal files gitignored, *.example.json templates committed
+│   │   ├── family-members.json   (+ family-members.example.json)
+│   │   ├── categories.json       (+ categories.example.json)
+│   │   └── goals.json            (+ goals.example.json)
 │   ├── stocks/               # Stocks dashboard presets
 │   ├── funds/                # Funds 13F seed list (seed.json — famous investors)
 │   └── todo/                # (reserved for future todo configs)
@@ -27,7 +27,9 @@ PersonalHub/
 │   │       │   ├── funds/    # Funds routes (funds, screener), SEC EDGAR client (lib/secEdgar.ts), seed
 │   │       │   └── todo/     # Todo routes (groups, todos, stats)
 │   │       ├── db/           # Drizzle ORM + SQLite setup
-│   │       └── lib/          # Shared server helpers (config.ts)
+│   │       ├── lib/          # Shared server helpers (config.ts, backup.ts)
+│   │       ├── routes/       # Platform routes (system.ts — backup status/run at /api/system)
+│   │       └── scripts/      # CLI entry points (backup.ts — npm run backup / restore)
 │   └── client/              # Vite + React SPA (port 5173) — TanStack Query, Recharts, Tailwind v4
 │       └── src/
 │           ├── apps/
@@ -48,6 +50,7 @@ PersonalHub/
 - `npm run dev` — starts both server (tsx watch) and client (Vite) via concurrently (`--raw` mode to avoid tsx watch output buffering)
 - `npm run build` — builds all packages in dependency order
 - `npm run db:studio` — opens Drizzle Studio to browse the SQLite database
+- `npm run backup` / `npm run restore` — encrypted backup/restore of all local-only data (see Data Backup below); also `backup:list`, `backup:status`, `backup:verify`
 - Copy `.env.example` to `.env` and set `ALPHA_VANTAGE_API_KEY` to enable manual stock metric refreshes (or `ALPHA_VANTAGE_API_KEYS`, a comma-separated pool that the server rotates through when a key hits its 25/day limit — see the Stocks section). Set `GITHUB_MODELS_TOKEN` (GitHub PAT with `models:read`) to enable the Stock Research Agent. Set `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV`, and `PLAID_ENCRYPTION_KEY` (64-char hex, used for AES-256-GCM token encryption) to enable Plaid brokerage sync. Server startup loads the repo root `.env` first, then `packages/server/.env`.
 
 ## Documentation Maintenance
@@ -59,7 +62,7 @@ PersonalHub/
 
 - **Multi-app platform**: Each app has its own directory under `config/`, `server/src/apps/`, and `client/src/apps/`. Platform-level code (Layout, Home page, shared API instance) lives outside app directories.
 - **Namespaced API routes**: Each app's server routes are mounted at `/api/<appName>/*` (e.g., `/api/networth/snapshots`). The app router aggregator in `src/apps/<appName>/index.ts` mounts sub-routes.
-- **Config vs DB split**: App configurations (family members, categories, goals) are JSON files in `config/<appName>/` (version-controlled). Data lives in SQLite at `data/` (gitignored). The Todo app stores everything (groups + todos) in SQLite since they are fully dynamic user data.
+- **Config vs DB split**: App configurations (family members, categories, goals) are JSON files in `config/<appName>/`. Data lives in SQLite at `data/` (gitignored). The Todo app stores everything (groups + todos) in SQLite since they are fully dynamic user data. The personal Net Worth configs (`family-members.json`, `categories.json`, `goals.json`) are **gitignored**; `getMembers()`/`getCategories()`/`getGoals()` seed a missing file from its committed `*.example.json` template. Never commit personal data — this repo is public.
 - **Monetary values**: All amounts stored as **integers in cents** to avoid floating-point issues. Liabilities stored as **negative values**. Net worth = `SUM(all values)`.
 - **No authentication**: Personal tool — all data accessible to anyone with UI access.
 - **Dev proxy**: Vite proxies `/api/*` to `http://localhost:3001`.
@@ -163,7 +166,7 @@ Unique indexes on `funds.cik` and `fund_filings.accession_number`; indexes on `f
 ## Client Patterns (packages/client)
 
 - **React 19 + Vite + Tailwind CSS v4** with `@theme` custom properties for colors (primary=indigo, success=green, danger=red, warning=amber).
-- **TanStack Query v5** for all data fetching. Query keys are arrays: `['snapshots']`, `['snapshot', id]`, `['trends']`, `['insights-summary']`, `['goals']`, `['members']`, `['categories']`, `['todo-groups']`, `['todos']`, `['todo', id]`, `['todo-stats']`, `['todo-calendar', month]`, `['stocks-dashboard']`, `['stocks-summary']`, `['stock', id]`, `['stock-presets']`, `['stock-decisions', id]`, `['funds']`, `['fund', id]`, `['fund-holdings', id, filingId]`, `['fund-deltas', id]`, `['funds-summary']`, `['funds-screener']`, `['funds-screener-presets']`, `['funds-insights']`. Mutations invalidate related query keys on success.
+- **TanStack Query v5** for all data fetching. Query keys are arrays: `['snapshots']`, `['snapshot', id]`, `['trends']`, `['insights-summary']`, `['goals']`, `['members']`, `['categories']`, `['todo-groups']`, `['todos']`, `['todo', id]`, `['todo-stats']`, `['todo-calendar', month]`, `['stocks-dashboard']`, `['stocks-summary']`, `['stock', id]`, `['stock-presets']`, `['stock-decisions', id]`, `['funds']`, `['fund', id]`, `['fund-holdings', id, filingId]`, `['fund-deltas', id]`, `['funds-summary']`, `['funds-screener']`, `['funds-screener-presets']`, `['funds-insights']`, `['backup-status']`. Mutations invalidate related query keys on success.
 - **Global toast notifications**: `react-hot-toast` with a global `MutationCache` in `main.tsx`. Mutations that set `meta: { successMessage: '...' }` get an automatic success toast. All mutation errors show an error toast by default. The `<Toaster>` is rendered in `App.tsx` at bottom-right with a dark theme.
 - **App-scoped API layer**: Each app has its own `api.ts` at `src/apps/<appName>/api.ts` with an axios instance (`baseURL: '/api/<appName>'`). Platform-level shared API at `src/lib/api.ts` (`baseURL: '/api'`).
 - **React Router v7** — Layout as parent route with `<Outlet />`. App pages are nested under `/<appName>/*`. Platform pages (Home, Help) are at root level.
@@ -258,6 +261,16 @@ Unique indexes on `funds.cik` and `fund_filings.accession_number`; indexes on `f
 - **Screener presets**: CRUD at `/api/funds/presets` (`presets.ts`, mounted before `/:id`). Presets persist to `config/funds/screener-presets.json` via `getFundScreenerPresets()`/`saveFundScreenerPresets()` in `src/lib/config.ts`. Ships 5 built-ins (`builtIn:true`, non-editable/non-deletable): Consensus Holdings, Cheap Conviction, High Upside, Big Stake Increases, Bearish Signals. User presets use `id=preset-<timestamp>`.
 - **13F Insights**: `GET /api/funds/insights` (`insights.ts`, mounted before `/:id`) computes cross-fund signals on the fly (no persistence) from each active fund's latest two filings: `clusterBuys` (new+add by ≥2 funds), `newConsensus` (new in ≥2 funds), `clusterExits` (exit+trim by ≥2 funds), `bearishActivity` (any fund with put exposure), `trackedOverlap` (moves on tracked stocks), `concentratedBets` (top single-fund positions by portfolio weight), plus a representative `quarterLabel`. Client page `Insights.tsx` at `/funds/insights`.
 - **Server deps**: `fast-xml-parser`.
+
+### Data Backup (platform)
+- **Scope**: All local-only data is backed up together: `data/networth.db` (via better-sqlite3 `backup()`, a consistent online copy that includes WAL contents and is safe while the server runs; the copy is converted to `journal_mode=DELETE`), `research/`, `config/`, `.env`, and `packages/server/.env`. Logic lives in `packages/server/src/lib/backup.ts`; the CLI is `src/scripts/backup.ts`; HTTP routes are `src/routes/system.ts` mounted at `/api/system` (`GET /backup/status`, `POST /backup`).
+- **Archive format** (`.phbk`): `"PHBK"` | version byte | salt(16) | iv(12) | GCM tag(16) | AES-256-GCM(tar.gz). The key is `scrypt(BACKUP_PASSPHRASE, salt)`. The tar payload contains `manifest.json` (createdAt, reason, hostname, git commit, per-table row counts, SHA-256 of every file).
+- **Verification**: after writing, every archive is decrypted, extracted, hash-checked, integrity-checked, and its row counts compared (`openArchive()`). A failed verification deletes the archive. Restore runs the same checks before touching anything.
+- **Destinations**: local `BACKUP_DIR` (default `~/PersonalHub-backups`, keeps `BACKUP_KEEP_LOCAL`=14 regular archives) plus optional off-site upload as **GitHub Release assets** on a private repo (`BACKUP_GITHUB_REPO`) via the `gh` CLI. `BACKUP_GITHUB_USER` selects the `gh` account (`gh auth token --user`), or `BACKUP_GITHUB_TOKEN` provides a token directly. Retention is `BACKUP_KEEP_REMOTE`=30 (older `backup-*` releases are deleted along with their tags). Release assets are used instead of commits so encrypted blobs don't bloat git history.
+- **Automation**: `startAutoBackup()` (called after `app.listen`) backs up 15s after startup and re-checks hourly whenever the last backup is older than `BACKUP_INTERVAL_HOURS` (24). `BACKUP_AUTO=false` disables it. State is kept in `BACKUP_DIR/backup-state.json`; a pid-based `.backup.lock` prevents concurrent runs between the server and the CLI.
+- **Restore safety**: `npm run restore` refuses to run while something listens on `PORT`, writes a `*-pre-restore.phbk` safety archive of the current data (not uploaded, not pruned), then replaces the DB (removing stale `-wal`/`-shm`) and `research/` wholesale, merges `config/`, and restores `.env` unless `--skip-env` is passed.
+- **Client**: `components/BackupStatusBar.tsx` on Home shows the last backup and upload state and has a "Back up now" button.
+- **Server deps**: `tar`.
 
 ## When Adding a New App
 

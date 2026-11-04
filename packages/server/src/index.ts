@@ -9,6 +9,8 @@ import todoRouter from './apps/todo/index.js';
 import stocksRouter from './apps/stocks/index.js';
 import fundsRouter from './apps/funds/index.js';
 import { seedFunds } from './apps/funds/lib/seed.js';
+import systemRouter from './routes/system.js';
+import { startAutoBackup } from './lib/backup.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,6 +37,7 @@ app.use('/api/networth', networthRouter);
 app.use('/api/todo', todoRouter);
 app.use('/api/stocks', stocksRouter);
 app.use('/api/funds', fundsRouter);
+app.use('/api/system', systemRouter);
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -43,4 +46,5 @@ app.get('/api/health', (_req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Personal Hub server running on http://localhost:${PORT}`);
+  startAutoBackup();
 });

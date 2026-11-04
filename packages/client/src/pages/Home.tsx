@@ -6,6 +6,7 @@ import { fetchStats as fetchTodoStats } from '../apps/todo/api';
 import { fetchStocksSummary } from '../apps/stocks/api';
 import { fetchFundsSummary } from '../apps/funds/api';
 import { formatCurrency, formatPercent } from '@networth/shared';
+import BackupStatusBar from '../components/BackupStatusBar';
 
 export default function Home() {
   const { data: summary } = useQuery({
@@ -174,6 +175,8 @@ export default function Home() {
           )}
         </Link>
       </div>
+
+      <BackupStatusBar />
     </div>
   );
 }

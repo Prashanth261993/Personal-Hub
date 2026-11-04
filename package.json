@@ -12,7 +12,12 @@
     "build": "npm run build -w packages/shared && npm run build -w packages/server && npm run build -w packages/client",
     "db:generate": "npm run db:generate -w packages/server",
     "db:migrate": "npm run db:migrate -w packages/server",
-    "db:studio": "npm run db:studio -w packages/server"
+    "db:studio": "npm run db:studio -w packages/server",
+    "backup": "npm run backup:cli --silent -w packages/server -- backup",
+    "backup:list": "npm run backup:cli --silent -w packages/server -- list",
+    "backup:status": "npm run backup:cli --silent -w packages/server -- status",
+    "backup:verify": "npm run backup:cli --silent -w packages/server -- verify",
+    "restore": "npm run backup:cli --silent -w packages/server -- restore"
   },
   "devDependencies": {
     "concurrently": "^9.1.0",

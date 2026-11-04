@@ -8,7 +8,8 @@
     "build": "tsc",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "backup:cli": "tsx src/scripts/backup.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -22,6 +23,7 @@
     "fast-xml-parser": "^5.8.0",
     "openai": "^6.34.0",
     "plaid": "^41.4.0",
+    "tar": "^7.5.22",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
